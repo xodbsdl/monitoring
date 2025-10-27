@@ -1216,7 +1216,6 @@ def update_graph():
         
         # 모든 데이터 포인트 표시 (누적)
         recent_data = data_rows
-        xs = [row[0] - data_rows[0][0] for row in sample_data] if data_rows else []
         
         # 📊 상태별 공통 필드 분석 시스템
         # 각 상태별로 나타나는 필드들 분석
@@ -1277,12 +1276,19 @@ def update_graph():
         axes_list = []  # Y축 리스트
         plot_count = 0
         
-        # 🚀 성능 최적화: 큰 데이터셋 샘플링
+        # �️ 변수 초기화 (안전장치)
+        sample_data = recent_data
+        xs = []
+        
+        # �🚀 성능 최적화: 큰 데이터셋 샘플링
         if len(recent_data) > 500:  # 500개 이상이면 샘플링
             step = len(recent_data) // 300  # 최대 300개로 제한
             sample_data = recent_data[::step]
         else:
             sample_data = recent_data  # 작은 데이터셋은 그대로 사용
+        
+        # 📊 샘플링된 데이터로 X축 계산
+        xs = [row[0] - data_rows[0][0] for row in sample_data] if data_rows else []
             
         # 동적으로 발견된 필드들을 그래프로 표시
         for i, field in enumerate(graph_fields):
