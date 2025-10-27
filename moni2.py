@@ -1446,10 +1446,15 @@ def update_graph():
         if all_lines:
             legend = ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.5, 1.15), 
                                    loc='upper center', fontsize=10, ncol=2)
-            # 범례 텍스트 색상도 일치시키기
-            for i, text in enumerate(legend.get_texts()):
+            
+            # 🎨 범례 선과 텍스트 색상 강제 통일
+            legend_handles = legend.legendHandles
+            for i, (handle, text) in enumerate(zip(legend_handles, legend.get_texts())):
                 if i < len(legend_colors):
-                    text.set_color(legend_colors[i])
+                    # 범례 선 색상 통일
+                    handle.set_color(legend_colors[i])
+                    # 범례 텍스트 색상은 검은색으로 유지 (가독성)
+                    text.set_color('black')
     
     # 격자는 기본 축에만
     ax_graph.grid(True, linestyle=':', alpha=0.4, zorder=0)

@@ -152,8 +152,8 @@ class PrecisionUDPSender:
         
         # 📊 랜덤 시작값들 (세션마다 변경)
         import random
-        self.initial_soc = random.randint(5, 20)  # 초기 SOC: 5-20%
-        self.target_soc = random.randint(80, 88)  # 목표 SOC: 80-88%
+        self.initial_soc = random.uniform(0.3, 0.5)  # 초기 SOC: 0.3-0.5
+        self.target_soc = random.uniform(0.8, 1.0)   # 목표 SOC: 0.8-1.0
         self.flow_rate_base = random.uniform(20.0, 48.0)  # 기본 유량: 20-48 g/s
         
         # 📊 MAIN_FUELING 마지막 값들 (SHUTDOWN에서 사용)
@@ -202,13 +202,23 @@ class PrecisionUDPSender:
         # 📊 SOC 계산 (MAIN_FUELING에서만 충전 증가)
         if current_state == "IDLE" or current_state == "STARTUP":
             # 충전 시작 전 - 초기값 유지
+            if not hasattr(self, 'current_soc'):
+                self.current_soc = self.initial_soc
             soc_value = self.initial_soc
         elif current_state == "MAIN_FUELING":
-            # 실제 충전 중 - 초기값에서 목표값까지 점진적 증가
-            progress = self.current_state_time / self.state_durations["MAIN_FUELING"]
-            soc_range = self.target_soc - self.initial_soc
-            soc_value = self.initial_soc + (progress * soc_range)
-            soc_value = min(self.target_soc, soc_value)  # 목표값 초과 방지
+            # 실제 충전 중 - 랜덤 증가량으로 점진적 증가 (0.3~1.0% 씩)
+            import random
+            
+            # 현재 SOC 값 계산 (이전 패킷의 SOC 기준)
+            if not hasattr(self, 'current_soc'):
+                self.current_soc = self.initial_soc  # 첫 MAIN_FUELING 시작 시
+            
+            # 0.3~1.0 사이 랜덤 증가량 적용
+            soc_increment = random.uniform(0.3, 1.0)
+            self.current_soc += soc_increment
+            
+            # 목표값 초과 방지
+            soc_value = min(self.target_soc, self.current_soc)
         else:  # SHUTDOWN
             # 충전 완료 - 목표값 유지
             soc_value = self.target_soc
@@ -380,6 +390,7 @@ class PrecisionUDPSender:
                 # 현재 상태의 경과 시간 계산
                 states_completed_time = sum(self.state_durations[self.simulation_states[i]] for i in range(self.current_state_index))
                 current_state_elapsed = (actual_send_time - self.start_time) - states_completed_time
+                self.current_state_time = current_state_elapsed  # 📊 상태 시간 업데이트
                 
                 if current_state_elapsed >= state_duration:
                     # 다음 상태로 전환
@@ -447,6 +458,7 @@ class PrecisionUDPSender:
                         self.current_state_time = 0.0
                         self.last_flow_rate = 0.0
                         self.last_fueling_pressure = 0.0
+                        self.current_soc = self.initial_soc  # SOC 초기값 설정
                         
                         print(f"🎲 새 세션 시작: 초기SOC={self.initial_soc}%, 목표SOC={self.target_soc}%, 기본유량={self.flow_rate_base:.1f}g/s")
                         
