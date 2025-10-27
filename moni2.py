@@ -326,8 +326,37 @@ UDP_PORT = 12345        # 데이터 수신 포트
 DATA_FILE = "monitoring_data.csv"
 
 # 제어신호 송신 설정 (moni → disp)
-DISP_IP = "192.168.0.12"  # 송신기(disp) IP
-CONTROL_PORT = 50001      # 제어 신호 포트
+def detect_disp_ip():
+    """🔍 실행 환경에 따라 disp.py의 IP 자동 감지"""
+    import platform
+    
+    # Windows 환경에서는 localhost 사용
+    if platform.system() == "Windows":
+        print("🪟 Windows 환경 감지: localhost 사용")
+        return "localhost"
+    
+    # Linux 환경에서는 네트워크 IP 감지
+    try:
+        import socket
+        # 로컬 IP 획득
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        
+        if local_ip.startswith("192.168.0"):
+            return "192.168.0.12"
+        elif local_ip.startswith("192.168.1"):
+            return "192.168.1.12"
+        else:
+            return "192.168.0.12"
+    except:
+        return "192.168.0.12"
+
+DISP_IP = detect_disp_ip()  # 자동 감지된 송신기(disp) IP
+CONTROL_PORT = 50001        # 제어 신호 포트
+
+print(f"🎯 제어 신호 타겟: {DISP_IP}:{CONTROL_PORT}")
 
 udp_thread = None
 data_rows = []
@@ -347,6 +376,8 @@ current_state = ["대기중"]  # 현재 상태
 
 
 def udp_receiver():
+    global data_rows, last_received_data
+    
     # UDP 소켓 생성
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # 포트 재사용 허용
@@ -605,27 +636,90 @@ ax_slider_area.axis('off')
 
 # 그래프에 표시할 필드와 해당 색상, 심볼 정의 (확장 가능)
 plot_field_config = {
+    # 배터리 관련
     "SOC": {
         "color": "#2E8B57",      # 진한 초록 (Sea Green)
         "emoji": "[BAT]",        # 배터리 표시
         "unit": "%"
     },
+    
+    # 유량 관련
     "유량": {
         "color": "#4169E1",      # 파란색 (Royal Blue)
         "emoji": "[FLOW]",       # 유량 표시
         "unit": "g/s"
+    },
+    
+    # 온도 관련
+    "외기온도": {
+        "color": "#FF6347",      # 빨간색 (Tomato)
+        "emoji": "[TEMP]",       # 온도 표시
+        "unit": "°C"
+    },
+    "출력수소온도": {
+        "color": "#FF4500",      # 주황빨강 (Orange Red)
+        "emoji": "[H2TEMP]",     # 수소 온도
+        "unit": "°C"
+    },
+    "MT": {
+        "color": "#DC143C",      # 진한 빨강 (Crimson)
+        "emoji": "[MT]",         # MT 온도
+        "unit": "°C"
+    },
+    
+    # 압력 관련
+    "인렛압력": {
+        "color": "#8A2BE2",      # 보라색 (Blue Violet)
+        "emoji": "[PIN]",        # 입구 압력
+        "unit": "bar"
+    },
+    "출력압력": {
+        "color": "#9932CC",      # 진한 보라 (Dark Orchid)
+        "emoji": "[POUT]",       # 출구 압력
+        "unit": "bar"
+    },
+    "초기압력": {
+        "color": "#BA55D3",      # 중간 보라 (Medium Orchid)
+        "emoji": "[PINIT]",      # 초기 압력
+        "unit": "bar"
+    },
+    "타겟압력": {
+        "color": "#DA70D6",      # 연한 보라 (Orchid)
+        "emoji": "[PTGT]",       # 타겟 압력
+        "unit": "bar"
+    },
+    "설정출력압력": {
+        "color": "#DDA0DD",      # 매우 연한 보라 (Plum)
+        "emoji": "[PSET]",       # 설정 압력
+        "unit": "bar"
+    },
+    "퓨얼링압력": {
+        "color": "#663399",      # 진한 보라 (Rebecca Purple)
+        "emoji": "[PFUEL]",      # 퓨얼링 압력
+        "unit": "bar"
+    },
+    "MP": {
+        "color": "#4B0082",      # 인디고 (Indigo)
+        "emoji": "[MP]",         # MP 압력
+        "unit": "bar"
+    },
+    
+    # 기타 값들
+    "APRR": {
+        "color": "#20B2AA",      # 청록색 (Light Sea Green)
+        "emoji": "[APRR]",       # APRR 값
+        "unit": ""
+    },
+    "최종충전량": {
+        "color": "#FF69B4",      # 핫 핑크 (Hot Pink)
+        "emoji": "[FUEL]",       # 충전량
+        "unit": "kg"
+    },
+    "최종충전금액": {
+        "color": "#FFD700",      # 금색 (Gold)
+        "emoji": "[COST]",       # 비용
+        "unit": "원"
     }
-    # 나중에 추가할 필드들 예시:
-    # "외기온도": {
-    #     "color": "#FF6347",    # 빨간색 (Tomato)
-    #     "emoji": "🌡️",
-    #     "unit": "°C"
-    # },
-    # "압력": {
-    #     "color": "#8A2BE2",    # 보라색 (Blue Violet)
-    #     "emoji": "⚡",
-    #     "unit": "bar"
-    # }
 }
 
 fields_to_plot = list(plot_field_config.keys())  # 설정된 필드들만 그래프로 표시
@@ -788,25 +882,49 @@ def update_state_panel(idx=None):
                      bbox=dict(boxstyle="round,pad=0.4", facecolor='lightyellow', 
                               alpha=0.95, edgecolor='red', linewidth=2))
     
-    # 실시간 모드일 때 SOC와 유량 표시 (커서 비활성화 시)
+    # 실시간 모드일 때 필드 표시 (커서 비활성화 시) - 최대 4개만 표시
     elif not cursor_active[0] and data_rows:
         latest_row = data_rows[-1]
         if len(latest_row) > 1 and isinstance(latest_row[1], dict):
             data_dict = latest_row[1]
             
-            # 실시간 정보를 하나의 박스에 정리해서 표시
-            live_info_lines = [f"[LIVE] 실시간 데이터"]
+            # 📊 스크롤 기능: 전역 변수로 현재 스크롤 위치 관리
+            if not hasattr(update_state_panel, 'scroll_offset'):
+                update_state_panel.scroll_offset = 0
+                update_state_panel.max_display = 4  # 최대 4개 표시
             
-            # SOC와 유량만 표시
+            # 표시 가능한 필드들 수집
+            available_fields = []
             for field_name, field_config in plot_field_config.items():
-                if field_name in data_dict:
+                if field_name in data_dict and field_name != 'STATE':  # STATE 제외
                     marker = field_config["emoji"]
                     unit = field_config.get("unit", "")
                     value = data_dict[field_name]
                     value_text = f"{marker} {field_name}: {value}"
                     if unit:
                         value_text += f" {unit}"
-                    live_info_lines.append(value_text)
+                    available_fields.append(value_text)
+            
+            # 📊 스크롤 처리: 현재 오프셋에서 최대 4개 필드만 표시
+            total_fields = len(available_fields)
+            max_offset = max(0, total_fields - update_state_panel.max_display)
+            
+            # 오프셋 범위 제한
+            update_state_panel.scroll_offset = max(0, min(update_state_panel.scroll_offset, max_offset))
+            
+            # 현재 페이지의 필드들 선택
+            start_idx = update_state_panel.scroll_offset
+            end_idx = start_idx + update_state_panel.max_display
+            displayed_fields = available_fields[start_idx:end_idx]
+            
+            # 스크롤 정보와 함께 헤더 생성
+            scroll_info = ""
+            if total_fields > update_state_panel.max_display:
+                current_page = (update_state_panel.scroll_offset // update_state_panel.max_display) + 1
+                total_pages = ((total_fields - 1) // update_state_panel.max_display) + 1
+                scroll_info = f" ({current_page}/{total_pages} 페이지)"
+            
+            live_info_lines = [f"[LIVE] 실시간 데이터{scroll_info}"] + displayed_fields
             
             # 실시간 정보 박스 표시 (동적 폰트 크기)
             live_text = "\n".join(live_info_lines)
@@ -955,8 +1073,9 @@ def update_current_values():
         if field_count >= 12:  # 최대 12개 필드 표시
             break
         
-        # 그래프 표시 필드는 강조
+        # 📊 자동 스타일 적용
         if field in plot_field_config:
+            # 기존 설정된 필드
             field_config = plot_field_config[field]
             color = field_config["color"]
             marker = field_config["emoji"]
@@ -965,12 +1084,55 @@ def update_current_values():
             if unit:
                 display_text += f" {unit}"
             font_weight = 'bold'
-            font_size = 9  # 폰트 크기 조금 줄임
+            font_size = 9
         else:
-            color = 'black'
-            display_text = f"{field}: {value}"
-            font_weight = 'normal'
-            font_size = 8  # 폰트 크기 조금 줄임
+            # 🎨 자동 스타일 생성
+            field_lower = field.lower()
+            if "온도" in field_lower or "temp" in field_lower:
+                color = '#FF6347'
+                marker = "[TEMP]"
+                unit = "°C"
+            elif "압력" in field_lower or "pressure" in field_lower or field in ["MP", "APRR"]:
+                color = '#8A2BE2'
+                marker = "[PRESS]"
+                unit = "bar"
+            elif "유량" in field_lower or "flow" in field_lower:
+                color = '#4169E1'
+                marker = "[FLOW]"
+                unit = "g/s"
+            elif "soc" in field_lower or "배터리" in field_lower:
+                color = '#2E8B57'
+                marker = "[BAT]"
+                unit = "%"
+            elif "금액" in field_lower or "cost" in field_lower or "원" in field_lower:
+                color = '#FFD700'
+                marker = "[COST]"
+                unit = "원"
+            elif "량" in field_lower or "weight" in field_lower or "kg" in field_lower:
+                color = '#FF69B4'
+                marker = "[WEIGHT]"
+                unit = "kg"
+            elif "시간" in field_lower or "time" in field_lower:
+                color = '#20B2AA'
+                marker = "[TIME]"
+                unit = ""
+            else:
+                color = '#666666'
+                marker = "[DATA]"
+                unit = ""
+            
+            display_text = f"{marker} {field}: {value}"
+            if unit:
+                display_text += f" {unit}"
+            
+            # 숫자 값이면 강조, 아니면 보통
+            try:
+                float(value)
+                font_weight = 'bold'
+                font_size = 9
+            except (ValueError, TypeError):
+                font_weight = 'normal'
+                font_size = 8
         
         # Y 위치가 패널 아래를 벗어나지 않도록 체크
         if y_pos > 0.05:  # 하단 여백 확보
@@ -1033,14 +1195,56 @@ def update_graph():
         recent_data = data_rows
         xs = [row[0] - data_rows[0][0] for row in recent_data] if data_rows else []
         
-        # 모든 데이터에서 사용 가능한 필드들을 동적으로 수집
-        all_fields = set()
+        # 📊 상태별 공통 필드 분석 시스템
+        # 각 상태별로 나타나는 필드들 분석
+        state_fields = {}
         for row in recent_data:
             if len(row) > 1 and isinstance(row[1], dict):
-                all_fields.update(row[1].keys())
+                state = row[1].get('STATE', 'UNKNOWN')
+                if state not in state_fields:
+                    state_fields[state] = set()
+                # STATE 제외한 필드들만 수집
+                fields = set(row[1].keys())
+                fields.discard('STATE')
+                state_fields[state].update(fields)
         
-        # plot_field_config에 정의된 필드들 중 실제 데이터에 있는 것만 선택
-        graph_fields = [field for field in plot_field_config.keys() if field in all_fields]
+        # 🎯 모든 상태에서 공통으로 나타나는 필드들만 선택
+        if len(state_fields) > 1:
+            # 여러 상태가 있을 때 - 교집합 (모든 상태에 공통인 필드)
+            common_fields = set.intersection(*state_fields.values()) if state_fields else set()
+            print(f"🔍 감지된 상태들: {list(state_fields.keys())}")
+            print(f"🎯 모든 상태 공통 필드: {sorted(common_fields)}")
+        else:
+            # 하나의 상태만 있을 때 - 해당 상태의 모든 필드
+            common_fields = next(iter(state_fields.values())) if state_fields else set()
+            print(f"🔍 현재 상태: {list(state_fields.keys())}")
+            print(f"🎯 현재 상태 필드: {sorted(common_fields)}")
+        
+        # 📊 특정 필드만 그래프에 표시 (SOC, 유량, 퓨얼링압력)
+        target_fields = ["SOC", "유량", "퓨얼링압력"]
+        graph_fields = []
+        
+        for field in target_fields:
+            if field in common_fields:
+                # 최근 데이터에서 이 필드가 숫자로 변환 가능한지 확인
+                has_numeric_data = False
+                for row in recent_data[-10:]:  # 최근 10개 데이터만 확인
+                    if len(row) > 1 and isinstance(row[1], dict):
+                        field_value = row[1].get(field)
+                        if field_value is not None:
+                            try:
+                                float(field_value)
+                                has_numeric_data = True
+                                break
+                            except (ValueError, TypeError):
+                                continue
+                
+                if has_numeric_data:
+                    graph_fields.append(field)
+        
+        # 필드 순서 유지 (SOC, 유량, 퓨얼링압력 순서)
+        
+        print(f"🔍 자동 감지된 그래프 필드: {graph_fields}")
         
         axes_list = []  # Y축 리스트
         plot_count = 0
@@ -1061,23 +1265,82 @@ def update_graph():
             
             # None이 아닌 값이 하나라도 있으면 그래프에 추가
             if any(y is not None for y in ys):
-                # 첫 번째 필드는 기본 Y축 사용
-                if plot_count == 0:
-                    current_ax = ax_graph
-                else:
-                    # 두 번째부터는 새로운 Y축 생성
-                    current_ax = ax_graph.twinx()
-                    current_ax._is_twin_axis = True  # 표시용
-                    all_graph_axes.append(current_ax)  # 클릭 감지용 리스트에 추가
-                    # Y축 위치 조정 (여러 축이 겹치지 않도록)
-                    if plot_count > 1:
-                        current_ax.spines['right'].set_position(('outward', 60 * (plot_count - 1)))
+                # 📊 Y축 좌우 균등 분배 시스템
+                total_fields = len(graph_fields)
+                left_count = (total_fields + 1) // 2   # 왼쪽에 더 많이 배치 (홀수일 때)
+                right_count = total_fields // 2        # 오른쪽
                 
-                # 필드 설정에서 색상, 이모지, 단위 가져오기
-                field_config = plot_field_config.get(field, {})
-                color = field_config.get("color", colors[i % len(colors)])
-                marker_symbol = field_config.get("emoji", "�")
-                unit = field_config.get("unit", "")
+                if plot_count == 0:
+                    # 첫 번째는 항상 기본 왼쪽 축
+                    current_ax = ax_graph
+                    axis_side = "left"
+                    axis_position = 0
+                elif plot_count < left_count:
+                    # 왼쪽 축들
+                    current_ax = ax_graph.twinx()
+                    current_ax._is_twin_axis = True
+                    all_graph_axes.append(current_ax)
+                    axis_side = "left"
+                    axis_position = plot_count
+                    # 왼쪽에 여러 축 배치 (안쪽으로 들여쓰기)
+                    current_ax.yaxis.set_ticks_position('left')
+                    current_ax.yaxis.set_label_position('left')
+                    if plot_count > 0:
+                        current_ax.spines['left'].set_position(('outward', 60 * plot_count))
+                        current_ax.spines['right'].set_visible(False)
+                else:
+                    # 오른쪽 축들
+                    current_ax = ax_graph.twinx()
+                    current_ax._is_twin_axis = True
+                    all_graph_axes.append(current_ax)
+                    axis_side = "right"
+                    right_index = plot_count - left_count
+                    axis_position = right_index
+                    # 오른쪽에 여러 축 배치 (바깥쪽으로 확장)
+                    current_ax.yaxis.set_ticks_position('right')
+                    current_ax.yaxis.set_label_position('right')
+                    if right_index > 0:
+                        current_ax.spines['right'].set_position(('outward', 60 * right_index))
+                    current_ax.spines['left'].set_visible(False)
+                
+                # 📊 자동 스타일 생성 또는 기존 설정 사용
+                if field in plot_field_config:
+                    # 기존에 설정된 필드는 해당 설정 사용
+                    field_config = plot_field_config[field]
+                    color = field_config.get("color", colors[i % len(colors)])
+                    marker_symbol = field_config.get("emoji", "[CUSTOM]")
+                    unit = field_config.get("unit", "")
+                else:
+                    # 🎨 새로운 필드는 자동으로 색상과 스타일 생성
+                    color = colors[i % len(colors)]
+                    
+                    # 필드명 기반 자동 이모지 및 단위 추정
+                    field_lower = field.lower()
+                    if "온도" in field_lower or "temp" in field_lower:
+                        marker_symbol = "[TEMP]"
+                        unit = "°C"
+                    elif "압력" in field_lower or "pressure" in field_lower or field in ["MP", "APRR"]:
+                        marker_symbol = "[PRESS]"
+                        unit = "bar"
+                    elif "유량" in field_lower or "flow" in field_lower:
+                        marker_symbol = "[FLOW]"
+                        unit = "g/s"
+                    elif "soc" in field_lower or "배터리" in field_lower:
+                        marker_symbol = "[BAT]"
+                        unit = "%"
+                    elif "금액" in field_lower or "cost" in field_lower or "원" in field_lower:
+                        marker_symbol = "[COST]"
+                        unit = "원"
+                    elif "량" in field_lower or "weight" in field_lower or "kg" in field_lower:
+                        marker_symbol = "[WEIGHT]"
+                        unit = "kg"
+                    elif "시간" in field_lower or "time" in field_lower:
+                        marker_symbol = "[TIME]"
+                        unit = ""
+                    else:
+                        marker_symbol = "[DATA]"
+                        unit = ""
+                
                 label_text = f"{marker_symbol} {field}"
                 if unit:
                     label_text += f" ({unit})"
@@ -1087,23 +1350,37 @@ def update_graph():
                                      label=label_text, marker='o', markersize=3, 
                                      linewidth=2.5, alpha=0.8)
                 
-                # Y축 색상을 그래프 색상과 동일하게 설정
-                current_ax.tick_params(axis='y', labelcolor=color, colors=color)
-                current_ax.spines['right'].set_color(color)
-                if plot_count == 0:
+                # 🎨 Y축 색상 설정 (축 선만 색칠, 라벨과 틱은 숨김)
+                if axis_side == "left":
+                    # 왼쪽 축들
                     current_ax.spines['left'].set_color(color)
+                    if axis_position > 0:  # 기본 축이 아닌 경우 오른쪽 스파인 숨김
+                        current_ax.spines['right'].set_visible(False)
+                else:
+                    # 오른쪽 축들
+                    current_ax.spines['right'].set_color(color)
+                    current_ax.spines['left'].set_visible(False)
                 
-                # Y축 라벨 설정 (필드명, 이모지, 단위 포함)
-                ylabel = f"{marker_symbol} {field}"
-                if unit:
-                    ylabel += f" ({unit})"
-                current_ax.set_ylabel(ylabel, color=color, fontsize=11, fontweight='bold')
+                # 🎯 Y축 설정: 한글 라벨 제거, 숫자 범위만 표시
+                if axis_side == "left":
+                    current_ax.tick_params(axis='y', which='both', 
+                                         left=True, right=False, 
+                                         labelleft=True, labelright=False, 
+                                         colors=color, labelsize=8)
+                else:
+                    current_ax.tick_params(axis='y', which='both', 
+                                         left=False, right=True, 
+                                         labelleft=False, labelright=True, 
+                                         colors=color, labelsize=8)
+                current_ax.set_ylabel('')  # 한글 라벨 제거
                 
                 # Y축 범위 고정
                 if field == "SOC":
-                    current_ax.set_ylim(0, 88)
-                elif field == "유량":
                     current_ax.set_ylim(0, 100)
+                elif field == "유량":
+                    current_ax.set_ylim(0, 88)  # 최대 88%까지
+                elif field == "퓨얼링압력":
+                    current_ax.set_ylim(0, 750)  # 0-750 bar
                 
                 axes_list.append((current_ax, label_text, color))
                 plot_count += 1
@@ -1686,8 +1963,32 @@ btn_on.on_clicked(on_on)
 btn_off.on_clicked(on_off)
 btn_reset.on_clicked(on_reset_cursor)
 
-# 마우스 클릭 이벤트 연결
+# 키보드 이벤트 핸들러 (스크롤 기능)
+def on_key_press(event):
+    """키보드 이벤트 처리 - 상태 패널 스크롤"""
+    if hasattr(update_state_panel, 'scroll_offset'):
+        if event.key == 'up' or event.key == 'w':
+            # 위로 스크롤 (이전 항목들)
+            update_state_panel.scroll_offset = max(0, update_state_panel.scroll_offset - 1)
+            update_all()
+            print("📜 상태 패널: 위로 스크롤")
+        elif event.key == 'down' or event.key == 's':
+            # 아래로 스크롤 (다음 항목들)
+            if hasattr(update_state_panel, 'max_display'):
+                # 최대 스크롤 위치 계산
+                with lock:
+                    if data_rows and len(data_rows) > 0:
+                        latest_row = data_rows[-1]
+                        if len(latest_row) > 1 and isinstance(latest_row[1], dict):
+                            total_fields = len([k for k in latest_row[1].keys() if k != 'STATE'])
+                            max_offset = max(0, total_fields - update_state_panel.max_display)
+                            update_state_panel.scroll_offset = min(max_offset, update_state_panel.scroll_offset + 1)
+                            update_all()
+                            print("📜 상태 패널: 아래로 스크롤")
+
+# 마우스 및 키보드 이벤트 연결
 fig.canvas.mpl_connect('button_press_event', on_click)
+fig.canvas.mpl_connect('key_press_event', on_key_press)
 
 
 # 타이머 시작 및 메인 루프

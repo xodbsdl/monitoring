@@ -18,14 +18,102 @@ import os
 import signal
 import sys
 import json
+import platform
 from datetime import datetime
+
+def detect_target_ip():
+    """🔍 실행 환경에 따라 자동으로 타겟 IP 감지"""
+    
+    print("🔍 타겟 IP 자동 감지 중...")
+    
+    # 0. Windows 환경에서는 localhost 우선 사용
+    if platform.system() == "Windows":
+        print("🪟 Windows 환경 감지: localhost 우선 사용")
+        return "localhost"
+    
+    # 1. 로컬 테스트 환경 감지 (더 안전한 방법)  
+    localhost_ips = ["127.0.0.1", "localhost"]
+    for local_ip in localhost_ips:
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            test_sock.settimeout(0.5)  # 타임아웃 증가
+            
+            # UDP 소켓으로 연결 테스트 (실제로는 UDP는 연결이 없지만 주소 유효성 검사)
+            try:
+                if local_ip == "localhost":
+                    test_address = ("127.0.0.1", 12345)
+                else:
+                    test_address = (local_ip, 12345)
+                
+                # 실제 연결 가능 여부 확인
+                test_sock.connect(test_address)
+                test_sock.close()
+                
+                print(f"🏠 로컬 환경 감지: {local_ip} ({test_address[0]}) 사용")
+                return test_address[0]
+            except:
+                test_sock.close()
+                continue
+        except:
+            continue
+    
+    # 2. 현재 시스템의 IP 주소 기반으로 네트워크 대역 감지
+    try:
+        # 시스템의 네트워크 인터페이스 정보 확인
+        temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        temp_sock.connect(("8.8.8.8", 80))
+        local_ip = temp_sock.getsockname()[0]
+        temp_sock.close()
+        
+        print(f"📍 로컬 IP 감지: {local_ip}")
+        
+        # IP 대역별로 가능한 moni IP 추정
+        if local_ip.startswith("192.168.0."):
+            candidate_ips = ["192.168.0.11", "192.168.0.10", "192.168.0.1"]
+        elif local_ip.startswith("192.168.1."):
+            candidate_ips = ["192.168.1.11", "192.168.1.10", "192.168.1.1"]
+        else:
+            # 다른 네트워크 대역
+            base = ".".join(local_ip.split(".")[:-1])
+            candidate_ips = [f"{base}.11", f"{base}.10", f"{base}.1"]
+            
+    except:
+        # 네트워크 정보 획득 실패시 기본 후보들
+        candidate_ips = [
+            "192.168.0.11", "192.168.0.10",
+            "192.168.1.11", "192.168.1.10"
+        ]
+    
+    # 3. 네트워크 상에서 moni2.py 찾기
+    print(f"🔍 후보 IP들을 확인 중: {candidate_ips}")
+    
+    for ip in candidate_ips:
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            test_sock.settimeout(1.0)  # 타임아웃 증가
+            
+            # 연결 테스트
+            test_sock.connect((ip, 12345))
+            test_sock.close()
+            
+            print(f"🌐 네트워크 환경 감지: {ip} 사용")
+            return ip
+        except Exception as e:
+            continue
+    
+    # 4. 기본값으로 폴백
+    default_ip = "127.0.0.1"  # 로컬 테스트를 기본으로
+    print(f"⚠️ 타겟 자동 감지 실패")
+    print(f"💡 기본값 사용: {default_ip}")
+    print("💡 moni2.py가 실행되고 있는지 확인하거나 수동으로 IP를 입력하세요")
+    return default_ip
 
 class PrecisionUDPSender:
     def __init__(self):
-        # 네트워크 설정
-        self.target_ip = "192.168.0.11"  # 수신기(moni) IP
-        self.target_port = 12345         # 데이터 전송 포트
-        self.control_port = 50001        # 제어 신호 수신 포트
+        # 네트워크 설정 (자동 감지)
+        self.target_ip = detect_target_ip()  # 자동 감지된 수신기(moni) IP
+        self.target_port = 12345              # 데이터 전송 포트
+        self.control_port = 50001             # 제어 신호 수신 포트
         
         # 타이밍 설정
         self.send_interval = 1.0         # 1초 간격
@@ -35,6 +123,15 @@ class PrecisionUDPSender:
         # 상태 관리
         self.is_running = False
         self.is_sending = False
+        
+        # 📊 상태별 시간 설정 (초)
+        self.state_durations = {
+            "IDLE": 5,           # 5초
+            "STARTUP": 5,        # 5초  
+            "MAIN_FUELING": 120, # 120초 (2분)
+            "SHUTDOWN": 20       # 20초
+        }
+        self.current_state_time = 0
         
         # 소켓
         self.send_sock = None
@@ -90,6 +187,37 @@ class PrecisionUDPSender:
         """시뮬레이션 데이터 생성"""
         current_state = self.simulation_states[self.current_state_index]
         
+        # 📊 유량 계산 (점진적 증가, 최대 88%)
+        if current_state == "IDLE":
+            flow_rate = 0.0
+        elif current_state == "STARTUP": 
+            # 점진적 증가 (0 -> 20%)
+            progress = self.current_state_time / self.state_durations["STARTUP"]
+            flow_rate = min(20.0, progress * 20.0)
+        elif current_state == "MAIN_FUELING":
+            # 점진적 증가 (20% -> 88%)
+            progress = self.current_state_time / self.state_durations["MAIN_FUELING"]
+            flow_rate = 20.0 + min(68.0, progress * 68.0)  # 20 + (0~68) = 최대 88%
+        else:  # SHUTDOWN
+            # 점진적 감소 (88% -> 0%)
+            progress = self.current_state_time / self.state_durations["SHUTDOWN"]
+            flow_rate = max(0.0, 88.0 * (1.0 - progress))
+        
+        # 📊 퓨얼링압력 계산
+        if current_state == "IDLE":
+            fueling_pressure = 0.0
+        elif current_state == "STARTUP":
+            fueling_pressure = 0.0
+        elif current_state == "MAIN_FUELING":
+            # 600~700바 사이에서 변동
+            base_pressure = 650.0
+            variation = 50.0 * (0.5 - (self.cycle_count % 20) / 40.0)  # ±25바 변동
+            fueling_pressure = base_pressure + variation
+        else:  # SHUTDOWN
+            # 점진적 감소 (이전값 -> 0)
+            progress = self.current_state_time / self.state_durations["SHUTDOWN"]
+            fueling_pressure = max(0.0, 650.0 * (1.0 - progress))
+        
         # 상태별 데이터 생성
         if current_state == "IDLE":
             data = {
@@ -102,7 +230,8 @@ class PrecisionUDPSender:
                 "인렛압력": f"{45.2 + (self.cycle_count % 5)}",
                 "출력압력": f"{0.1 + (self.cycle_count % 2)}",
                 "SOC": f"{75 + (self.cycle_count % 10)}",
-                "유량": f"{0.0}"
+                "유량": f"{flow_rate:.1f}",
+                "퓨얼링압력": f"{fueling_pressure:.1f}"
             }
         elif current_state == "STARTUP":
             data = {
@@ -114,9 +243,9 @@ class PrecisionUDPSender:
                 "MP": f"{15.2 + (self.cycle_count % 4)}",
                 "MT": f"{-5 + (self.cycle_count % 8)}",
                 "TV": "OPEN",
-                "퓨얼링압력": f"{25.4 + (self.cycle_count % 6)}",
+                "퓨얼링압력": f"{fueling_pressure:.1f}",
                 "SOC": f"{76 + (self.cycle_count % 8)}",
-                "유량": f"{12.5 + (self.cycle_count % 5)}"
+                "유량": f"{flow_rate:.1f}"
             }
         elif current_state == "MAIN_FUELING":
             data = {
@@ -125,9 +254,9 @@ class PrecisionUDPSender:
                 "MP": f"{65.8 + (self.cycle_count % 3)}",
                 "MT": f"{15 + (self.cycle_count % 10)}",
                 "TV": "MODULATE",
-                "퓨얼링압력": f"{68.2 + (self.cycle_count % 4)}",
+                "퓨얼링압력": f"{fueling_pressure:.1f}",
                 "SOC": f"{80 + (self.cycle_count % 15)}",
-                "유량": f"{45.2 + (self.cycle_count % 8)}"
+                "유량": f"{flow_rate:.1f}"
             }
         else:  # SHUTDOWN
             data = {
@@ -135,13 +264,13 @@ class PrecisionUDPSender:
                 "MP": f"{5.1 + (self.cycle_count % 2)}",
                 "MT": f"{25 + (self.cycle_count % 5)}",
                 "TV": "CLOSE",
-                "퓨얼링압력": f"{2.1 + (self.cycle_count % 3)}",
+                "퓨얼링압력": f"{fueling_pressure:.1f}",
                 "출력수소온도": f"{30 + (self.cycle_count % 8)}",
                 "충전시간": f"{int((self.cycle_count % 300) / 60)}분{(self.cycle_count % 300) % 60}초",
                 "최종충전량": f"{15.8 + (self.cycle_count % 5)}",
                 "최종충전금액": f"{25400 + (self.cycle_count % 1000)}",
                 "SOC": f"{95 + (self.cycle_count % 5)}",
-                "유량": f"{0.0}"
+                "유량": f"{flow_rate:.1f}"
             }
         
         return data
@@ -173,7 +302,7 @@ class PrecisionUDPSender:
     
     def send_data_loop(self):
         """🚀 정밀 타이밍 데이터 송신 루프"""
-        print("🚀 정밀 타이밍 데이터 송신 시작")
+        print("🚀 시뮬레이션 데이터 송신 시작 (성능 모니터링 아님!)")
         
         # 절대 시간 기준 시작점
         self.start_time = time.perf_counter()
@@ -199,6 +328,13 @@ class PrecisionUDPSender:
                 sim_data = self.generate_simulation_data()
                 packet = self.format_udp_packet(sim_data)
                 
+                # 첫 번째 패킷 전송 시 실제 데이터 내용 표시
+                if self.cycle_count == 0:
+                    print(f"📤 실제 전송 데이터 예시:")
+                    for key, value in sim_data.items():
+                        print(f"   {key}: {value}")
+                    print(f"📦 UDP 패킷 형태: {packet.decode('utf-8')[:100]}...")
+                
                 self.send_sock.sendto(packet, (self.target_ip, self.target_port))
                 
                 # 📊 성능 통계 업데이트
@@ -208,29 +344,35 @@ class PrecisionUDPSender:
                 if abs(timing_error) > self.stats['max_error']:
                     self.stats['max_error'] = abs(timing_error)
                 
-                # 🔄 상태 순환 (10초마다)
-                if self.cycle_count > 0 and self.cycle_count % 10 == 0:
-                    self.current_state_index = (self.current_state_index + 1) % len(self.simulation_states)
-                    print(f"🔄 상태 변경: {self.simulation_states[self.current_state_index]}")
+                # 🔄 상태별 타이밍에 따른 상태 변경
+                current_state = self.simulation_states[self.current_state_index]
+                state_duration = self.state_durations[current_state]
                 
-                # 📊 5초마다 성능 리포트
+                # 현재 상태의 경과 시간 계산
+                states_completed_time = sum(self.state_durations[self.simulation_states[i]] for i in range(self.current_state_index))
+                current_state_elapsed = (actual_send_time - self.start_time) - states_completed_time
+                
+                if current_state_elapsed >= state_duration:
+                    # 다음 상태로 전환
+                    old_state = current_state
+                    self.current_state_index = (self.current_state_index + 1) % len(self.simulation_states)
+                    new_state = self.simulation_states[self.current_state_index]
+                    print(f"🔄 상태 변경: {old_state} ({current_state_elapsed:.1f}s) → {new_state}")
+                    
+                    # 전체 사이클 완료 시 시작 시간 재설정
+                    if self.current_state_index == 0:
+                        self.start_time = actual_send_time
+                        self.cycle_count = 0
+                        print("🔄 새로운 사이클 시작")
+                
+                # 📊 10초마다 간단한 상태 리포트
                 current_time = time.time()
-                if current_time - last_stats_time >= 5.0:
+                if current_time - last_stats_time >= 10.0:
+                    current_state = self.simulation_states[self.current_state_index]
+                    state_progress = current_state_elapsed / state_duration * 100
+                    print(f"📊 데이터 송신 중: {self.stats['packets_sent']}패킷 ({current_state} {state_progress:.1f}%)")
+                    
                     if timing_errors:
-                        avg_error = sum(timing_errors) / len(timing_errors)
-                        max_recent = max(timing_errors)
-                        
-                        print(f"📊 성능 리포트: {self.stats['packets_sent']}패킷 송신")
-                        print(f"   ⏱️  평균 타이밍 오차: {avg_error*1000:.1f}ms")
-                        print(f"   🎯 최대 타이밍 오차: {max_recent*1000:.1f}ms") 
-                        print(f"   🌐 네트워크 오류: {self.stats['network_errors']}회")
-                        
-                        # 성능 경고
-                        if avg_error > 0.01:  # 10ms 이상
-                            print(f"   ⚠️ 타이밍 정확도 주의 필요")
-                        elif avg_error < 0.002:  # 2ms 이하
-                            print(f"   ✅ 타이밍 정확도 우수")
-                        
                         timing_errors.clear()
                     
                     last_stats_time = current_time
@@ -269,14 +411,14 @@ class PrecisionUDPSender:
                         # 송신 스레드 시작
                         send_thread = threading.Thread(target=self.send_data_loop, daemon=True)
                         send_thread.start()
-                        print("🟢 데이터 송신 시작")
+                        print("🟢 시뮬레이션 데이터 송신 시작 - 실제 센서 데이터 전송 중")
                     else:
                         print("⚠️ 이미 송신 중입니다")
                         
                 elif command == "OFF":
                     if self.is_sending:
                         self.is_sending = False
-                        print("🔴 데이터 송신 중지")
+                        print("🔴 시뮬레이션 데이터 송신 중지")
                     else:
                         print("⚠️ 송신이 활성화되지 않았습니다")
                 
@@ -303,12 +445,29 @@ class PrecisionUDPSender:
             print(f"총 실행 시간: {total_time:.1f}초")
             print(f"평균 송신율: {self.stats['packets_sent']/total_time:.1f} 패킷/초")
     
+    def set_target_ip(self, new_ip):
+        """🔧 타겟 IP 수동 변경"""
+        old_ip = self.target_ip
+        self.target_ip = new_ip
+        print(f"🔄 타겟 IP 변경: {old_ip} → {new_ip}")
+    
     def run(self):
         """🚀 메인 실행 함수"""
         print("🚀 정밀 타이밍 UDP 송신기 시작")
         print(f"🎯 타겟: {self.target_ip}:{self.target_port}")
         print(f"⏱️  송신 간격: {self.send_interval}초")
         print("="*50)
+        
+        # IP 변경 옵션 제공
+        try:
+            print("💡 다른 IP를 사용하려면 입력하세요 (엔터 키로 현재 설정 사용):")
+            user_ip = input(f"타겟 IP [{self.target_ip}]: ").strip()
+            if user_ip:
+                self.set_target_ip(user_ip)
+                print("="*50)
+        except KeyboardInterrupt:
+            print("\n🛑 사용자에 의한 종료")
+            return
         
         # 소켓 초기화
         if not self.setup_sockets():
