@@ -155,6 +155,11 @@ class PrecisionUDPSender:
         self.initial_soc = random.randint(5, 20)  # 초기 SOC: 5-20%
         self.target_soc = random.randint(80, 88)  # 목표 SOC: 80-88%
         self.flow_rate_base = random.uniform(20.0, 48.0)  # 기본 유량: 20-48 g/s
+        
+        # 📊 MAIN_FUELING 마지막 값들 (SHUTDOWN에서 사용)
+        self.last_flow_rate = 0.0
+        self.last_fueling_pressure = 0.0
+        
         print(f"🎲 세션 파라미터: 초기SOC={self.initial_soc}%, 목표SOC={self.target_soc}%, 기본유량={self.flow_rate_base:.1f}g/s")
         
     def setup_sockets(self):
@@ -208,22 +213,23 @@ class PrecisionUDPSender:
             # 목표값 유지
             soc_value = self.target_soc
         
-        # 📊 유량 계산 (g/s 단위, 20-48 g/s 범위)
+        # 📊 유량 계산 (g/s 단위, 20-48 g/s 범위, 실시간 변동)
+        import random
         if current_state == "IDLE":
             flow_rate = 0.0
         elif current_state == "STARTUP":
-            # 점진적 증가 (0 -> 기본유량의 50%)
+            # 점진적 증가 (0 -> 20-30 g/s 랜덤)
             progress = self.current_state_time / self.state_durations["STARTUP"]
-            flow_rate = progress * (self.flow_rate_base * 0.5)
+            target_flow = random.uniform(20.0, 30.0)  # 매번 다른 목표값
+            flow_rate = progress * target_flow
         elif current_state == "MAIN_FUELING":
-            # 기본유량 ±10% 변동
-            variation = (self.cycle_count % 20 - 10) / 100.0  # ±10% 변동
-            flow_rate = self.flow_rate_base * (1.0 + variation)
-            flow_rate = max(20.0, min(48.0, flow_rate))  # 20-48 g/s 범위 제한
+            # 매번 20-48 g/s 사이 랜덤값 생성
+            flow_rate = random.uniform(20.0, 48.0)
+            self.last_flow_rate = flow_rate  # 마지막 값 저장
         else:  # SHUTDOWN
-            # 점진적 감소 (기본유량 -> 0)
+            # MAIN_FUELING 마지막 값에서 점진적 감소 (-> 0)
             progress = self.current_state_time / self.state_durations["SHUTDOWN"]
-            flow_rate = max(0.0, self.flow_rate_base * (1.0 - progress))
+            flow_rate = max(0.0, self.last_flow_rate * (1.0 - progress))
         
         # 📊 퓨얼링압력 계산
         if current_state == "IDLE":
@@ -235,10 +241,11 @@ class PrecisionUDPSender:
             base_pressure = 650.0
             variation = 50.0 * (0.5 - (self.cycle_count % 20) / 40.0)  # ±25바 변동
             fueling_pressure = base_pressure + variation
+            self.last_fueling_pressure = fueling_pressure  # 마지막 값 저장
         else:  # SHUTDOWN
-            # 점진적 감소 (이전값 -> 0)
+            # MAIN_FUELING 마지막 값에서 점진적 감소 (-> 0)
             progress = self.current_state_time / self.state_durations["SHUTDOWN"]
-            fueling_pressure = max(0.0, 650.0 * (1.0 - progress))
+            fueling_pressure = max(0.0, self.last_fueling_pressure * (1.0 - progress))
         
         # 상태별 데이터 생성
         if current_state == "IDLE":

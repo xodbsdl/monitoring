@@ -1256,7 +1256,12 @@ def update_graph():
                 if has_numeric_data:
                     graph_fields.append(field)
         
-        # 필드 순서 유지 (SOC, 유량, 퓨얼링압력 순서)
+        # 📊 필드별 고정 색상 매핑 (범례, 그래프 선, Y축 통일)
+        field_colors = {
+            "SOC": "#2E8B57",         # 바다색 (SeaGreen)
+            "유량": "#FF6347",         # 토마토색 (Tomato)  
+            "퓨얼링압력": "#4169E1"     # 로열블루 (RoyalBlue)
+        }
         
         print(f"🔍 자동 감지된 그래프 필드: {graph_fields}")
         
@@ -1317,16 +1322,16 @@ def update_graph():
                         current_ax.spines['right'].set_position(('outward', 60 * right_index))
                     current_ax.spines['left'].set_visible(False)
                 
-                # 📊 자동 스타일 생성 또는 기존 설정 사용
+                # 📊 필드별 고정 색상 적용 (범례, 그래프, Y축 통일)
+                color = field_colors.get(field, colors[i % len(colors)])  # 고정 색상 우선 사용
+                
                 if field in plot_field_config:
-                    # 기존에 설정된 필드는 해당 설정 사용
+                    # 기존에 설정된 필드는 해당 설정 사용 (색상 제외)
                     field_config = plot_field_config[field]
-                    color = field_config.get("color", colors[i % len(colors)])
                     marker_symbol = field_config.get("emoji", "[CUSTOM]")
                     unit = field_config.get("unit", "")
                 else:
-                    # 🎨 새로운 필드는 자동으로 색상과 스타일 생성
-                    color = colors[i % len(colors)]
+                    # 🎨 새로운 필드는 자동으로 스타일 생성
                     
                     # 필드명 기반 자동 이모지 및 단위 추정
                     field_lower = field.lower()
@@ -1392,7 +1397,7 @@ def update_graph():
                 if field == "SOC":
                     current_ax.set_ylim(0, 100)  # 0-100%
                 elif field == "유량":
-                    current_ax.set_ylim(0, 50)   # 0-50 g/s (20-48 g/s 범위 포함)
+                    current_ax.set_ylim(0, 70)   # 0-70 g/s
                 elif field == "퓨얼링압력":
                     current_ax.set_ylim(0, 750)  # 0-750 bar
                 
