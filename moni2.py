@@ -1259,8 +1259,8 @@ def update_graph():
         # 📊 필드별 고정 색상 매핑 (범례, 그래프 선, Y축 통일)
         field_colors = {
             "SOC": "#2E8B57",         # 바다색 (SeaGreen)
-            "유량": "#FF6347",         # 토마토색 (Tomato)  
-            "퓨얼링압력": "#4169E1"     # 로열블루 (RoyalBlue)
+            "유량": "#0000FF",         # 파란색 (Blue)  
+            "퓨얼링압력": "#FF6347"     # 토마토색 (Tomato)
         }
         
         print(f"🔍 자동 감지된 그래프 필드: {graph_fields}")
@@ -1475,6 +1475,12 @@ def update_graph():
     
     # 레이아웃은 이미 subplots_adjust로 설정됨
     fig.canvas.draw_idle()
+    
+    # 🔄 실시간 업데이트 강제 적용
+    try:
+        fig.canvas.flush_events()  # 이벤트 강제 처리
+    except:
+        pass
 
 def on_slider(val):
     idx = int(val)
@@ -1496,29 +1502,39 @@ def on_click(event):
             is_graph_click = True
     
     if is_graph_click and event.xdata is not None:
-        with lock:
-            if not data_rows:
-                return
-            
-            # 첫 클릭시 커서 활성화
-            cursor_active[0] = True
-            
-            # 클릭한 x좌표에서 가장 가까운 데이터 포인트 찾기 (전체 데이터 사용)
-            if not data_rows:
-                return
-            xs = [row[0] - data_rows[0][0] for row in data_rows]  # 전체 데이터 기준
-            
-            # 클릭 위치와 가장 가까운 인덱스 찾기
-            closest_idx = min(range(len(xs)), key=lambda i: abs(xs[i] - event.xdata))
-            global_idx = closest_idx
-            
-            cursor_idx[0] = global_idx
-            
-            # 슬라이더가 있으면 동기화 (실시간 업데이트는 중단하지 않음)
-            if slider is not None:
-                slider.set_val(global_idx)
-            
-            # 상태 패널만 업데이트 (그래프는 periodic_update에서 계속 처리)
+        try:
+            with lock:
+                if not data_rows:
+                    return
+                
+                # 첫 클릭시 커서 활성화
+                cursor_active[0] = True
+                
+                # 클릭한 x좌표에서 가장 가까운 데이터 포인트 찾기 (전체 데이터 사용)
+                if not data_rows:
+                    return
+                xs = [row[0] - data_rows[0][0] for row in data_rows]  # 전체 데이터 기준
+                
+                # 클릭 위치와 가장 가까운 인덱스 찾기
+                closest_idx = min(range(len(xs)), key=lambda i: abs(xs[i] - event.xdata))
+                global_idx = closest_idx
+                
+                cursor_idx[0] = global_idx
+                
+                # 슬라이더가 있으면 동기화 (실시간 업데이트는 중단하지 않음)
+                if slider is not None:
+                    try:
+                        slider.set_val(global_idx)
+                    except:
+                        pass  # 슬라이더 업데이트 실패 시 무시
+                
+                # 🔄 즉시 업데이트 (실시간 중에도 클릭 반응)
+                update_state_panel()
+                fig.canvas.draw_idle()
+                
+        except Exception as e:
+            print(f"⚠️ 클릭 이벤트 처리 중 오류: {e}")
+            pass  # 오류 발생해도 계속 진행
 
 
 def update_all():
@@ -1623,14 +1639,14 @@ def periodic_update():
             data_count = len(data_rows)
         
         if data_count > 100:
-            interval = 300  # 300ms - 고속 모드
-            print("🏃 고속 업데이트 모드: 300ms")
+            interval = 200  # 200ms - 고속 모드 (더 빠르게)
+            print("🏃 고속 업데이트 모드: 200ms")
         elif data_count > 10:
-            interval = 500  # 500ms - 일반 모드  
-            print("🚶 일반 업데이트 모드: 500ms")
+            interval = 300  # 300ms - 일반 모드  
+            print("🚶 일반 업데이트 모드: 300ms")
         else:
-            interval = 800  # 800ms - 절약 모드
-            print("🐌 절약 업데이트 모드: 800ms")
+            interval = 500  # 500ms - 절약 모드 (더 빠르게)
+            print("🐌 절약 업데이트 모드: 500ms")
         
         # 🎯 정밀 타이머 설정 (중복 방지 강화)
         if update_timer is None:
