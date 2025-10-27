@@ -359,6 +359,7 @@ CONTROL_PORT = 50001        # 제어 신호 포트
 print(f"🎯 제어 신호 타겟: {DISP_IP}:{CONTROL_PORT}")
 
 udp_thread = None
+udp_receiving = False  # 🔄 UDP 수신 상태 추적
 data_rows = []
 lock = threading.Lock()
 
@@ -924,14 +925,27 @@ def update_state_panel(idx=None):
                 total_pages = ((total_fields - 1) // update_state_panel.max_display) + 1
                 scroll_info = f" ({current_page}/{total_pages} 페이지)"
             
-            live_info_lines = [f"[LIVE] 실시간 데이터{scroll_info}"] + displayed_fields
+            # 🟢 연결 상태에 따른 Live 표시
+            global udp_receiving
+            if udp_receiving:
+                live_status = "🟢 [LIVE] 실시간 데이터"
+                live_color = 'darkgreen'
+                box_color = 'lightgreen' 
+                box_edge = 'darkgreen'
+            else:
+                live_status = "⚪ [OFFLINE] 연결 대기"
+                live_color = 'gray'
+                box_color = 'lightgray'
+                box_edge = 'gray'
+                
+            live_info_lines = [f"{live_status}{scroll_info}"] + displayed_fields
             
-            # 실시간 정보 박스 표시 (동적 폰트 크기)
+            # 실시간 정보 박스 표시 (연결 상태별 색상)
             live_text = "\n".join(live_info_lines)
             ax_state.text(0.5, 0.93, live_text, fontsize=font_sizes['normal'], 
-                         fontweight='bold', color='darkgreen', ha='center', va='top',
-                         bbox=dict(boxstyle="round,pad=0.4", facecolor='lightgreen', 
-                                  alpha=0.95, edgecolor='darkgreen', linewidth=2))
+                         fontweight='bold', color=live_color, ha='center', va='top',
+                         bbox=dict(boxstyle="round,pad=0.4", facecolor=box_color, 
+                                  alpha=0.95, edgecolor=box_edge, linewidth=2))
     
     # 4개 상태를 2x2 형태로 배치 - 확장된 크기와 간격
     available_height = 0.75  # 사용 가능한 높이 확장
@@ -1376,9 +1390,9 @@ def update_graph():
                 
                 # Y축 범위 고정
                 if field == "SOC":
-                    current_ax.set_ylim(0, 100)
+                    current_ax.set_ylim(0, 100)  # 0-100%
                 elif field == "유량":
-                    current_ax.set_ylim(0, 88)  # 최대 88%까지
+                    current_ax.set_ylim(0, 50)   # 0-50 g/s (20-48 g/s 범위 포함)
                 elif field == "퓨얼링압력":
                     current_ax.set_ylim(0, 750)  # 0-750 bar
                 
@@ -1617,7 +1631,7 @@ def periodic_update():
 
 # ON/OFF 버튼 콜백
 def on_on(event):
-    global data_rows, current_sequence_index, udp_thread, last_received_data
+    global data_rows, current_sequence_index, udp_thread, last_received_data, udp_receiving
     # 처음부터 다시 시작: 데이터 및 CSV 파일 초기화
     with lock:
         data_rows.clear()
@@ -1664,6 +1678,7 @@ def on_on(event):
         print("⚠️ virtual_data.txt 파일 정리 실패 - 강제 무시 모드 활성화")
     
     data_on[0] = True
+    udp_receiving = True  # 🟢 수신 상태 활성화
     
     # 상태 순서 인덱스 초기화 (중요!)
     current_sequence_index[0] = 0
@@ -1815,12 +1830,13 @@ def write_clean_state_section(writer, state, state_data):
         writer.writerow(row)
 
 def on_off(event):
-    global data_rows, current_sequence_index
+    global data_rows, current_sequence_index, udp_receiving
     if not data_on[0]:  # 이미 OFF 상태면 무시
         print("이미 OFF 상태입니다.")
         return
         
     data_on[0] = False
+    udp_receiving = False  # ⚪ 수신 상태 비활성화
     current_state[0] = "대기중"
     
     # 상태 순서 인덱스 초기화 (중요!)

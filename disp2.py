@@ -150,6 +150,13 @@ class PrecisionUDPSender:
         self.simulation_states = ["IDLE", "STARTUP", "MAIN_FUELING", "SHUTDOWN"]
         self.current_state_index = 0
         
+        # 📊 랜덤 시작값들 (세션마다 변경)
+        import random
+        self.initial_soc = random.randint(5, 20)  # 초기 SOC: 5-20%
+        self.target_soc = random.randint(80, 88)  # 목표 SOC: 80-88%
+        self.flow_rate_base = random.uniform(20.0, 48.0)  # 기본 유량: 20-48 g/s
+        print(f"🎲 세션 파라미터: 초기SOC={self.initial_soc}%, 목표SOC={self.target_soc}%, 기본유량={self.flow_rate_base:.1f}g/s")
+        
     def setup_sockets(self):
         """소켓 초기화 및 최적화"""
         try:
@@ -187,21 +194,36 @@ class PrecisionUDPSender:
         """시뮬레이션 데이터 생성"""
         current_state = self.simulation_states[self.current_state_index]
         
-        # 📊 유량 계산 (점진적 증가, 최대 88%)
+        # 📊 SOC 계산 (개선된 랜덤 시작값 + 점진적 증가)
+        if current_state == "IDLE" or current_state == "STARTUP":
+            # 초기값 유지 (5-20% 중 선택된 값)
+            soc_value = self.initial_soc
+        elif current_state == "MAIN_FUELING":
+            # 초기값에서 목표값(80-88%)까지 점진적 증가
+            progress = self.current_state_time / self.state_durations["MAIN_FUELING"]
+            soc_range = self.target_soc - self.initial_soc
+            soc_value = self.initial_soc + (progress * soc_range)
+            soc_value = min(self.target_soc, soc_value)  # 목표값 초과 방지
+        else:  # SHUTDOWN
+            # 목표값 유지
+            soc_value = self.target_soc
+        
+        # 📊 유량 계산 (g/s 단위, 20-48 g/s 범위)
         if current_state == "IDLE":
             flow_rate = 0.0
-        elif current_state == "STARTUP": 
-            # 점진적 증가 (0 -> 20%)
+        elif current_state == "STARTUP":
+            # 점진적 증가 (0 -> 기본유량의 50%)
             progress = self.current_state_time / self.state_durations["STARTUP"]
-            flow_rate = min(20.0, progress * 20.0)
+            flow_rate = progress * (self.flow_rate_base * 0.5)
         elif current_state == "MAIN_FUELING":
-            # 점진적 증가 (20% -> 88%)
-            progress = self.current_state_time / self.state_durations["MAIN_FUELING"]
-            flow_rate = 20.0 + min(68.0, progress * 68.0)  # 20 + (0~68) = 최대 88%
+            # 기본유량 ±10% 변동
+            variation = (self.cycle_count % 20 - 10) / 100.0  # ±10% 변동
+            flow_rate = self.flow_rate_base * (1.0 + variation)
+            flow_rate = max(20.0, min(48.0, flow_rate))  # 20-48 g/s 범위 제한
         else:  # SHUTDOWN
-            # 점진적 감소 (88% -> 0%)
+            # 점진적 감소 (기본유량 -> 0)
             progress = self.current_state_time / self.state_durations["SHUTDOWN"]
-            flow_rate = max(0.0, 88.0 * (1.0 - progress))
+            flow_rate = max(0.0, self.flow_rate_base * (1.0 - progress))
         
         # 📊 퓨얼링압력 계산
         if current_state == "IDLE":
@@ -229,7 +251,7 @@ class PrecisionUDPSender:
                 "외기온도": f"{20 + (self.cycle_count % 10)}",
                 "인렛압력": f"{45.2 + (self.cycle_count % 5)}",
                 "출력압력": f"{0.1 + (self.cycle_count % 2)}",
-                "SOC": f"{75 + (self.cycle_count % 10)}",
+                "SOC": f"{soc_value:.1f}",
                 "유량": f"{flow_rate:.1f}",
                 "퓨얼링압력": f"{fueling_pressure:.1f}"
             }
@@ -244,7 +266,7 @@ class PrecisionUDPSender:
                 "MT": f"{-5 + (self.cycle_count % 8)}",
                 "TV": "OPEN",
                 "퓨얼링압력": f"{fueling_pressure:.1f}",
-                "SOC": f"{76 + (self.cycle_count % 8)}",
+                "SOC": f"{soc_value:.1f}",
                 "유량": f"{flow_rate:.1f}"
             }
         elif current_state == "MAIN_FUELING":
@@ -255,7 +277,7 @@ class PrecisionUDPSender:
                 "MT": f"{15 + (self.cycle_count % 10)}",
                 "TV": "MODULATE",
                 "퓨얼링압력": f"{fueling_pressure:.1f}",
-                "SOC": f"{80 + (self.cycle_count % 15)}",
+                "SOC": f"{soc_value:.1f}",
                 "유량": f"{flow_rate:.1f}"
             }
         else:  # SHUTDOWN
@@ -269,7 +291,7 @@ class PrecisionUDPSender:
                 "충전시간": f"{int((self.cycle_count % 300) / 60)}분{(self.cycle_count % 300) % 60}초",
                 "최종충전량": f"{15.8 + (self.cycle_count % 5)}",
                 "최종충전금액": f"{25400 + (self.cycle_count % 1000)}",
-                "SOC": f"{95 + (self.cycle_count % 5)}",
+                "SOC": f"{soc_value:.1f}",
                 "유량": f"{flow_rate:.1f}"
             }
         
@@ -407,6 +429,13 @@ class PrecisionUDPSender:
                 
                 if command == "ON":
                     if not self.is_sending:
+                        # 🎲 새로운 세션 시작 - 랜덤 파라미터 재생성
+                        import random
+                        self.initial_soc = random.randint(5, 20)  # 초기 SOC: 5-20%
+                        self.target_soc = random.randint(80, 88)  # 목표 SOC: 80-88%
+                        self.flow_rate_base = random.uniform(20.0, 48.0)  # 기본 유량: 20-48 g/s
+                        print(f"🎲 새 세션 시작: 초기SOC={self.initial_soc}%, 목표SOC={self.target_soc}%, 기본유량={self.flow_rate_base:.1f}g/s")
+                        
                         self.is_sending = True
                         # 송신 스레드 시작
                         send_thread = threading.Thread(target=self.send_data_loop, daemon=True)
