@@ -517,6 +517,10 @@ def udp_receiver():
                 # 현재 상태와 같으면 허용 (반복)
                 elif expected_index == current_index:
                     print(f"✅ 현재 상태 반복: {temp_state}")
+                # 🔧 순서가 앞서가더라도 허용 (실시간 동기화)
+                elif expected_index > current_index:
+                    current_sequence_index[0] = expected_index
+                    print(f"🔄 상태 동기화: {temp_state} (인덱스 {current_index} → {expected_index})")
                 # 그 외는 무시
                 else:
                     print(f"🚫 순서 불일치 데이터 무시 (현재인덱스: {current_index}, 수신인덱스: {expected_index}): {line[:50]}...")
@@ -560,6 +564,11 @@ def udp_receiver():
             data_rows.append([timestamp, parsed_data])
             # 마지막 수신 시간 기록 (데이터 누락 감지용)
             udp_receiver.last_data_time = timestamp
+            
+            # 🔄 상태 변경 감지만 로그 (GUI 업데이트는 타이머에서)
+            if hasattr(udp_receiver, 'last_state') and udp_receiver.last_state != parsed_data['STATE']:
+                print(f"🔄 상태 변경 감지: {getattr(udp_receiver, 'last_state', 'Unknown')} → {parsed_data['STATE']}")
+            udp_receiver.last_state = parsed_data['STATE']
             
             # 🧹 메모리 관리: 오래된 데이터 자동 정리
             if len(data_rows) > MAX_DATA_POINTS:
@@ -1207,7 +1216,7 @@ def update_graph():
         
         # 모든 데이터 포인트 표시 (누적)
         recent_data = data_rows
-        xs = [row[0] - data_rows[0][0] for row in recent_data] if data_rows else []
+        xs = [row[0] - data_rows[0][0] for row in sample_data] if data_rows else []
         
         # 📊 상태별 공통 필드 분석 시스템
         # 각 상태별로 나타나는 필드들 분석
@@ -1268,10 +1277,16 @@ def update_graph():
         axes_list = []  # Y축 리스트
         plot_count = 0
         
+        # 🚀 성능 최적화: 큰 데이터셋 샘플링
+        sample_data = recent_data
+        if len(recent_data) > 500:  # 500개 이상이면 샘플링
+            step = len(recent_data) // 300  # 최대 300개로 제한
+            sample_data = recent_data[::step]
+            
         # 동적으로 발견된 필드들을 그래프로 표시
         for i, field in enumerate(graph_fields):
             ys = []
-            for row in recent_data:
+            for row in sample_data:
                 val = None
                 if len(row) > 1 and isinstance(row[1], dict):
                     field_value = row[1].get(field)
@@ -1364,10 +1379,10 @@ def update_graph():
                 if unit:
                     label_text += f" ({unit})"
                 
-                # 그래프 그리기
+                # 🚀 성능 최적화된 그래프 그리기
                 line = current_ax.plot(xs, ys, color=color, 
-                                     label=label_text, marker='o', markersize=3, 
-                                     linewidth=2.5, alpha=0.8)
+                                     label=label_text, marker='.', markersize=1, 
+                                     linewidth=1.5, alpha=0.9)
                 
                 # 🎨 Y축 색상 설정 (축 선만 색칠, 라벨과 틱은 숨김)
                 if axis_side == "left":
@@ -1589,26 +1604,17 @@ def periodic_update_callback():
             slider.on_changed(on_slider)
             print("🎛️ 슬라이더 생성 완료")
         
-        # 📈 메인 업데이트 실행
-        update_all()
+        # 📈 성능 최적화된 업데이트 (조건부 실행)
+        if data_count > 0:
+            update_all()
         
-        # 📊 성능 통계 (10초마다)
+        # 📊 성능 통계 (간소화)
         callback_end_time = time.perf_counter()
         callback_duration = (callback_end_time - callback_start_time) * 1000  # ms
         
-        if not hasattr(periodic_update_callback, 'last_perf_report'):
-            periodic_update_callback.last_perf_report = time.time()
-            periodic_update_callback.callback_times = []
-        
-        periodic_update_callback.callback_times.append(callback_duration)
-        
-        # 10초마다 성능 리포트
-        current_time = time.time()
-        if current_time - periodic_update_callback.last_perf_report >= 10.0:
-            avg_time = sum(periodic_update_callback.callback_times) / len(periodic_update_callback.callback_times)
-            max_time = max(periodic_update_callback.callback_times)
-            
-            print(f"📊 GUI 성능: 평균 {avg_time:.1f}ms, 최대 {max_time:.1f}ms, 데이터 {data_count}개")
+        # 성능 경고만 표시 (상세 통계 제거)
+        if callback_duration > 200:  # 200ms 이상이면 경고
+            print(f"⚠️ GUI 응답 지연: {callback_duration:.1f}ms (데이터: {data_count}개)")
             
             # 성능 경고
             if avg_time > 100:  # 100ms 이상이면 경고
@@ -1638,15 +1644,13 @@ def periodic_update():
         with lock:
             data_count = len(data_rows)
         
-        if data_count > 100:
-            interval = 200  # 200ms - 고속 모드 (더 빠르게)
-            print("🏃 고속 업데이트 모드: 200ms")
-        elif data_count > 10:
-            interval = 300  # 300ms - 일반 모드  
-            print("🚶 일반 업데이트 모드: 300ms")
+        # 🚀 실시간 반영을 위해 더 빠른 업데이트
+        if data_count > 0:
+            interval = 100  # 100ms - 실시간 모드
+            # print("� 실시간 업데이트 모드: 100ms")  # 로그 제거로 성능 향상
         else:
-            interval = 500  # 500ms - 절약 모드 (더 빠르게)
-            print("🐌 절약 업데이트 모드: 500ms")
+            interval = 300  # 300ms - 대기 모드
+            # print("⏸️  대기 업데이트 모드: 300ms")
         
         # 🎯 정밀 타이머 설정 (중복 방지 강화)
         if update_timer is None:
