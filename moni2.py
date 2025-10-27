@@ -1427,19 +1427,29 @@ def update_graph():
     ax_graph.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax_graph.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_time(x)))
     
-    # 범례를 모든 축에서 수집해서 하나로 통합
+    # 범례를 모든 축에서 수집해서 하나로 통합 (색상 강제 통일)
     if plot_count > 0:
         all_lines = []
         all_labels = []
+        legend_colors = []
+        
         for ax_item, label, color in axes_list:
             lines = ax_item.get_lines()
             if lines:
+                # 각 라인의 색상을 강제로 설정된 색상으로 맞춤
+                for line in lines:
+                    line.set_color(color)  # 색상 강제 통일
                 all_lines.extend(lines)
                 all_labels.append(label)
+                legend_colors.append(color)
         
         if all_lines:
-            ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.5, 1.15), 
-                           loc='upper center', fontsize=10, ncol=2)
+            legend = ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.5, 1.15), 
+                                   loc='upper center', fontsize=10, ncol=2)
+            # 범례 텍스트 색상도 일치시키기
+            for i, text in enumerate(legend.get_texts()):
+                if i < len(legend_colors):
+                    text.set_color(legend_colors[i])
     
     # 격자는 기본 축에만
     ax_graph.grid(True, linestyle=':', alpha=0.4, zorder=0)
