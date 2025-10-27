@@ -1278,10 +1278,11 @@ def update_graph():
         plot_count = 0
         
         # 🚀 성능 최적화: 큰 데이터셋 샘플링
-        sample_data = recent_data
         if len(recent_data) > 500:  # 500개 이상이면 샘플링
             step = len(recent_data) // 300  # 최대 300개로 제한
             sample_data = recent_data[::step]
+        else:
+            sample_data = recent_data  # 작은 데이터셋은 그대로 사용
             
         # 동적으로 발견된 필드들을 그래프로 표시
         for i, field in enumerate(graph_fields):
@@ -1592,6 +1593,9 @@ def periodic_update_callback():
     callback_start_time = time.perf_counter()
     
     try:
+        # 🛡️ 기본 안전 체크
+        if not data_on[0]:
+            return  # OFF 상태면 업데이트 스킵
         with lock:
             data_count = len(data_rows)
         
@@ -1615,21 +1619,25 @@ def periodic_update_callback():
         # 성능 경고만 표시 (상세 통계 제거)
         if callback_duration > 200:  # 200ms 이상이면 경고
             print(f"⚠️ GUI 응답 지연: {callback_duration:.1f}ms (데이터: {data_count}개)")
-            
-            # 성능 경고
-            if avg_time > 100:  # 100ms 이상이면 경고
-                print("⚠️ GUI 응답 속도 저하 감지 - 데이터 정리 권장")
-            elif avg_time < 50:  # 50ms 이하면 양호
-                print("✅ GUI 응답 속도 양호")
-            
-            # 리스트 초기화
-            periodic_update_callback.callback_times = []
             periodic_update_callback.last_perf_report = current_time
             
     except Exception as e:
         print(f"❌ periodic_update_callback 오류: {e}")
-        import traceback
-        traceback.print_exc()
+        # 🛡️ 오류가 반복되지 않도록 안전장치
+        try:
+            if hasattr(periodic_update_callback, 'error_count'):
+                periodic_update_callback.error_count += 1
+            else:
+                periodic_update_callback.error_count = 1
+                
+            # 연속 오류 10회 이상이면 타이머 중단
+            if periodic_update_callback.error_count > 10:
+                print("🚨 연속 오류로 인한 타이머 중단")
+                if update_timer:
+                    update_timer.stop()
+                return
+        except:
+            pass  # 안전장치도 실패하면 조용히 넘어감
 
 def periodic_update():
     """🚀 고성능 타이머 설정 (정밀도 향상)"""
