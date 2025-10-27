@@ -440,17 +440,13 @@ def udp_receiver():
             line = packet.decode('utf-8', errors='ignore').strip()  # 🛡️ 안전한 디코딩
             current_time = time.time()
             
-            # 📊 성능 통계 업데이트
+            # 📊 성능 통계 업데이트 (로깅 최소화)
             packet_count += 1
-            if current_time - last_stats_time >= 10.0:  # 10초마다 통계 출력
-                print(f"� 성능 통계: {packet_count}패킷 수신, {error_count}오류 (10초간)")
+            if current_time - last_stats_time >= 30.0:  # 30초마다만 통계 출력
+                print(f"📊 성능 통계: {packet_count}패킷 수신")
                 packet_count = 0
                 error_count = 0
                 last_stats_time = current_time
-            
-            # 🎯 선택적 디버그 출력 (성능 향상)
-            if packet_count % 5 == 0:  # 5개마다 1개만 출력
-                print(f"�📥 UDP [{current_time:.3f}]: {line[:60]}...")
                 
         except socket.timeout:
             # OFF 상태인지 다시 확인
@@ -474,14 +470,36 @@ def udp_receiver():
             
         except (UnicodeDecodeError, socket.error) as e:
             error_count += 1
-            print(f"🚫 UDP 수신 오류 #{error_count}: {e}")
+            error_msg = str(e)
+            
+            # 🛡️ 특정 오류별 처리
+            if "Transport endpoint is not connected" in error_msg:
+                print(f"🔌 연결 오류 #{error_count}: UDP 연결이 끊어짐. 재연결 시도...")
+                try:
+                    sock.close()
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind((UDP_IP, UDP_PORT))
+                    sock.settimeout(0.05)
+                    print("✅ UDP 소켓 재연결 성공")
+                    error_count = 0  # 성공 시 오류 카운트 리셋
+                except Exception as reconnect_error:
+                    print(f"❌ 재연결 실패: {reconnect_error}")
+            elif "Connection refused" in error_msg:
+                print(f"🚫 연결 거부 #{error_count}: 송신측이 응답하지 않음")
+            else:
+                print(f"🚫 UDP 수신 오류 #{error_count}: {e}")
+            
             if error_count > 10:  # 연속 오류 시 소켓 재시작
-                print("🔄 UDP 소켓 재시작 필요")
+                print("🔄 너무 많은 오류로 UDP 소켓 재시작 필요")
                 break
             continue
         except Exception as e:
             error_count += 1
             print(f"❌ 예상치 못한 UDP 오류: {e}")
+            # 📊 상세 오류 분석 
+            import traceback
+            print(f"🔍 오류 상세: {traceback.format_exc()}")
             continue
         
         if not line:
@@ -493,7 +511,7 @@ def udp_receiver():
             temp_state = line.split('|', 1)[0]
             current_index = current_sequence_index[0]
             
-            print(f"🔍 상태 검증: 현재인덱스={current_index}({expected_state_sequence[current_index]}), 수신상태={temp_state}")
+            # 🔍 상태 검증 로그 (성능을 위해 생략)
             
             # 데이터가 없거나 처음 수신하는 경우 - 어떤 상태든 허용
             if len(data_rows) == 0:
@@ -593,8 +611,15 @@ def udp_receiver():
     # 🛡️ 안전한 UDP 수신기 종료
     try:
         if sock:
-            sock.shutdown(socket.SHUT_RDWR)  # 소켓 종료 시그널
-            sock.close()
+            try:
+                # UDP 소켓의 경우 shutdown이 필요하지 않을 수 있음
+                sock.shutdown(socket.SHUT_RDWR)  
+            except OSError as shutdown_error:
+                # UDP 소켓에서 shutdown 오류는 무시 가능
+                if "Transport endpoint is not connected" not in str(shutdown_error):
+                    print(f"⚠️ 소켓 종료 시그널 오류 (무시됨): {shutdown_error}")
+            finally:
+                sock.close()
         print("✅ UDP 수신기 정상 종료됨")
     except Exception as e:
         print(f"⚠️ UDP 소켓 종료 오류: {e}")
@@ -1281,8 +1306,8 @@ def update_graph():
         xs = []
         
         # �🚀 성능 최적화: 큰 데이터셋 샘플링
-        if len(recent_data) > 500:  # 500개 이상이면 샘플링
-            step = len(recent_data) // 300  # 최대 300개로 제한
+        if len(recent_data) > 200:  # 200개 이상이면 샘플링
+            step = max(1, len(recent_data) // 150)  # 최대 150개로 제한
             sample_data = recent_data[::step]
         else:
             sample_data = recent_data  # 작은 데이터셋은 그대로 사용
@@ -1469,14 +1494,28 @@ def update_graph():
             legend = ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.5, 1.15), 
                                    loc='upper center', fontsize=10, ncol=2)
             
-            # 🎨 범례 선과 텍스트 색상 강제 통일
-            legend_handles = legend.legendHandles
+            # 🎨 범례 선과 텍스트 색상 강제 통일 (matplotlib 버전 호환)
+            try:
+                # 최신 버전 시도
+                legend_handles = legend.legend_handles
+            except AttributeError:
+                try:
+                    # 이전 버전 시도
+                    legend_handles = legend.legendHandles
+                except AttributeError:
+                    # 모든 버전에서 실패하면 get_lines() 사용
+                    legend_handles = legend.get_lines()
+            
             for i, (handle, text) in enumerate(zip(legend_handles, legend.get_texts())):
                 if i < len(legend_colors):
-                    # 범례 선 색상 통일
-                    handle.set_color(legend_colors[i])
-                    # 범례 텍스트 색상은 검은색으로 유지 (가독성)
-                    text.set_color('black')
+                    try:
+                        # 범례 선 색상 통일
+                        handle.set_color(legend_colors[i])
+                        # 범례 텍스트 색상은 검은색으로 유지 (가독성)
+                        text.set_color('black')
+                    except Exception:
+                        # 색상 설정 실패 시 무시하고 계속
+                        pass
     
     # 격자는 기본 축에만
     ax_graph.grid(True, linestyle=':', alpha=0.4, zorder=0)
@@ -1495,14 +1534,8 @@ def update_graph():
     else:
         ax_graph.set_xlim(0, 50)  # 초기 범위
     
-    # 레이아웃은 이미 subplots_adjust로 설정됨
+    # 그래프 업데이트 (데이터 주기에 맞춘 최적화)
     fig.canvas.draw_idle()
-    
-    # 🔄 실시간 업데이트 강제 적용
-    try:
-        fig.canvas.flush_events()  # 이벤트 강제 처리
-    except:
-        pass
 
 def on_slider(val):
     idx = int(val)
@@ -1622,10 +1655,13 @@ def periodic_update_callback():
         callback_end_time = time.perf_counter()
         callback_duration = (callback_end_time - callback_start_time) * 1000  # ms
         
-        # 성능 경고만 표시 (상세 통계 제거)
-        if callback_duration > 200:  # 200ms 이상이면 경고
-            print(f"⚠️ GUI 응답 지연: {callback_duration:.1f}ms (데이터: {data_count}개)")
-            periodic_update_callback.last_perf_report = current_time
+        # 성능 경고 (심각한 지연만 알림)
+        if callback_duration > 500:  # 500ms 이상 심각한 지연만 경고
+            current_time = time.time()
+            # 10초마다 한번만 경고
+            if not hasattr(periodic_update_callback, 'last_warning') or (current_time - periodic_update_callback.last_warning) > 10:
+                print(f"🚨 심각한 GUI 지연: {callback_duration:.1f}ms")
+                periodic_update_callback.last_warning = current_time
             
     except Exception as e:
         print(f"❌ periodic_update_callback 오류: {e}")
@@ -1660,10 +1696,10 @@ def periodic_update():
         
         # 🚀 실시간 반영을 위해 더 빠른 업데이트
         if data_count > 0:
-            interval = 100  # 100ms - 실시간 모드
+            interval = 1000  # 1초 - 데이터 수신 주기와 동일
             # print("� 실시간 업데이트 모드: 100ms")  # 로그 제거로 성능 향상
         else:
-            interval = 300  # 300ms - 대기 모드
+            interval = 2000  # 2초 - 대기 모드
             # print("⏸️  대기 업데이트 모드: 300ms")
         
         # 🎯 정밀 타이머 설정 (중복 방지 강화)
