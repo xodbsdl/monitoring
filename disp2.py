@@ -146,6 +146,10 @@ class PrecisionUDPSender:
             'avg_error': 0.0
         }
         
+        # 📊 데이터 로깅 (개선된 모니터링용)
+        self.data_log = []
+        self.max_log_size = 10000  # 최대 로그 크기
+        
         # 시뮬레이션 데이터
         self.simulation_states = ["IDLE", "STARTUP", "MAIN_FUELING", "SHUTDOWN"]
         self.current_state_index = 0
@@ -159,6 +163,8 @@ class PrecisionUDPSender:
         # 📊 MAIN_FUELING 마지막 값들 (SHUTDOWN에서 사용)
         self.last_flow_rate = 0.0
         self.last_fueling_pressure = 0.0
+        self.shutdown_just_entered = False  # SHUTDOWN ? ?? ???
+        self.previous_state = None  # ?? ?? ??
         
         print(f"🎲 세션 파라미터: 초기SOC={self.initial_soc}%, 목표SOC={self.target_soc}%, 기본유량={self.flow_rate_base:.1f}g/s")
         
@@ -199,6 +205,14 @@ class PrecisionUDPSender:
         """시뮬레이션 데이터 생성"""
         current_state = self.simulation_states[self.current_state_index]
         
+        # SHUTDOWN ? ?? ??
+        if self.previous_state == "MAIN_FUELING" and current_state == "SHUTDOWN":
+            self.shutdown_just_entered = True
+            print(f" SHUTDOWN ? ?? - ???: ??={self.last_flow_rate:.1f}, ??={self.last_fueling_pressure:.1f}")
+        
+        # ?? ??? ?? ??? ??
+        self.previous_state = current_state
+        
         # 📊 SOC 계산 (MAIN_FUELING에서만 충전 증가)
         if current_state == "IDLE" or current_state == "STARTUP":
             # 충전 시작 전 - 초기값 유지
@@ -228,18 +242,20 @@ class PrecisionUDPSender:
         if current_state == "IDLE":
             flow_rate = 0.0
         elif current_state == "STARTUP":
-            # 점진적 증가 (0 -> 20-30 g/s 랜덤)
-            progress = self.current_state_time / self.state_durations["STARTUP"]
-            target_flow = random.uniform(20.0, 30.0)  # 매번 다른 목표값
-            flow_rate = progress * target_flow
+            # STARTUP 상태에서는 유량 0
+            flow_rate = 0.0
         elif current_state == "MAIN_FUELING":
             # 매번 20-48 g/s 사이 랜덤값 생성
             flow_rate = random.uniform(20.0, 48.0)
             self.last_flow_rate = flow_rate  # 마지막 값 저장
         else:  # SHUTDOWN
-            # MAIN_FUELING 마지막 값에서 점진적 감소 (-> 0)
-            progress = self.current_state_time / self.state_durations["SHUTDOWN"]
-            flow_rate = max(0.0, self.last_flow_rate * (1.0 - progress))
+            # MAIN_FUELING ??? ??? ??? ?? (-> 0)
+            if self.shutdown_just_entered:
+                # ? ??? ??? ? ??? ??
+                flow_rate = self.last_flow_rate
+            else:
+                progress = self.current_state_time / self.state_durations["SHUTDOWN"]
+                flow_rate = max(0.0, self.last_flow_rate * (1.0 - progress))
         
         # 📊 퓨얼링압력 계산
         if current_state == "IDLE":
@@ -253,9 +269,15 @@ class PrecisionUDPSender:
             fueling_pressure = base_pressure + variation
             self.last_fueling_pressure = fueling_pressure  # 마지막 값 저장
         else:  # SHUTDOWN
-            # MAIN_FUELING 마지막 값에서 점진적 감소 (-> 0)
-            progress = self.current_state_time / self.state_durations["SHUTDOWN"]
-            fueling_pressure = max(0.0, self.last_fueling_pressure * (1.0 - progress))
+            # MAIN_FUELING ??? ??? ??? ?? (-> 0)
+            if self.shutdown_just_entered:
+                # ? ??? ??? ? ??? ??
+                fueling_pressure = self.last_fueling_pressure
+                self.shutdown_just_entered = False  # ??? ??
+                print(f"? SHUTDOWN ? ?? ??: ??={flow_rate:.1f}, ??={fueling_pressure:.1f}")
+            else:
+                progress = self.current_state_time / self.state_durations["SHUTDOWN"]
+                fueling_pressure = max(0.0, self.last_fueling_pressure * (1.0 - progress))
         
         # 상태별 데이터 생성
         if current_state == "IDLE":
@@ -400,7 +422,12 @@ class PrecisionUDPSender:
                     print(f"🔄 상태 변경: {old_state} ({current_state_elapsed:.1f}s) → {new_state}")
                     
                     # 전체 사이클 완료 시 시작 시간 재설정
-                    if self.current_state_index == 0:
+                    if new_state == "IDLE":
+                        # SHUTDOWN ?? ? ?? ??
+                    # SHUTDOWN ?? ?? - ? ?? ?? ?? ??
+                        self.is_sending = False
+                        print(" ??? ?? - ?? ??")
+                        break
                         self.start_time = actual_send_time
                         self.cycle_count = 0
                         print("🔄 새로운 사이클 시작")

@@ -21,12 +21,12 @@ def setup_matplotlib_backend():
     
     if is_frozen:
         # PyInstaller로 빌드된 exe 환경 - PIL 충돌 방지
-        print("🔧 exe 빌드 환경 감지: Agg 백엔드 강제 사용 (PIL 충돌 방지)")
+        print("exe 빌드 환경 감지: Agg 백엔드 강제 사용 (PIL 충돌 방지)")
         try:
             matplotlib.use('Agg', force=True)
             return 'Agg'
         except Exception as e:
-            print(f"⚠️ Agg 백엔드 설정 실패: {e}")
+            print(f"Agg 백엔드 설정 실패: {e}")
             # 최후의 수단으로 TkAgg 시도
             try:
                 matplotlib.use('TkAgg', force=True)
@@ -42,7 +42,7 @@ def setup_matplotlib_backend():
         if not display:
             # headless 환경 (SSH 등)
             matplotlib.use('Agg')
-            print("🖥️  headless 환경 감지: Agg 백엔드 사용 (파일 저장만 가능)")
+            print(" headless 환경 감지: Agg 백엔드 사용 (파일 저장만 가능)")
             return 'Agg'
         else:
             # GUI 환경 - 안전한 백엔드 순서로 시도 (PyInstaller 호환)
@@ -55,7 +55,7 @@ def setup_matplotlib_backend():
                         try:
                             import tkinter
                             matplotlib.use('TkAgg', force=True)
-                            print(f"🖥️  GUI 환경: {backend} 백엔드 사용 (안전 모드)")
+                            print(f" GUI 환경: {backend} 백엔드 사용 (안전 모드)")
                             return backend
                         except Exception:
                             continue
@@ -63,31 +63,31 @@ def setup_matplotlib_backend():
                         try:
                             import PyQt5
                             matplotlib.use('Qt5Agg', force=True)
-                            print(f"🖥️  GUI 환경: {backend} 백엔드 사용")
+                            print(f" GUI 환경: {backend} 백엔드 사용")
                             return backend
                         except ImportError:
                             continue
                     else:  # Agg
                         matplotlib.use('Agg', force=True)
-                        print("⚠️  Fallback: Agg 백엔드 사용")
+                        print(" Fallback: Agg 백엔드 사용")
                         return backend
                         
                 except Exception as e:
-                    print(f"⚠️  {backend} 백엔드 실패: {e}")
+                    print(f" {backend} 백엔드 실패: {e}")
                     continue
             
             # 모든 GUI 백엔드 실패 시
             matplotlib.use('Agg', force=True)
-            print("⚠️  모든 GUI 백엔드 실패: Agg 백엔드로 폴백")
+            print(" 모든 GUI 백엔드 실패: Agg 백엔드로 폴백")
             return 'Agg'
     else:
         # Windows/macOS - PyInstaller 빌드 고려
         try:
             matplotlib.use('TkAgg', force=True)
-            print(f"🖥️  {system} 환경: TkAgg 백엔드 사용 (빌드 호환)")
+            print(f" {system} 환경: TkAgg 백엔드 사용 (빌드 호환)")
             return 'TkAgg'
         except Exception:
-            print(f"🖥️  {system} 환경: 기본 백엔드 사용")
+            print(f" {system} 환경: 기본 백엔드 사용")
             return matplotlib.get_backend()
 
 # 백엔드 초기화
@@ -107,7 +107,7 @@ def setup_korean_font():
         
         if is_frozen:
             # exe 빌드 환경에서는 시스템 기본 폰트 사용
-            print("🔧 exe 빌드 환경: 시스템 기본 폰트 사용")
+            print("exe 빌드 환경: 시스템 기본 폰트 사용")
             plt.rcParams['font.family'] = ['Malgun Gothic', 'DejaVu Sans', 'sans-serif']
             plt.rcParams['axes.unicode_minus'] = False
             return 'Malgun Gothic'
@@ -147,19 +147,19 @@ def setup_korean_font():
         if korean_fonts:
             plt.rcParams['font.family'] = korean_fonts
             plt.rcParams['axes.unicode_minus'] = False
-            print(f"✅ 한글 폰트 설정 완료: {korean_fonts[0]}")
+            print(f"한글 폰트 설정 완료: {korean_fonts[0]}")
             return korean_fonts[0]
         else:
             # 폰트가 없으면 기본값 사용
             plt.rcParams['font.family'] = ['sans-serif']
             plt.rcParams['axes.unicode_minus'] = False
-            print("⚠️ 한글 폰트 없음: 기본 폰트 사용")
+            print("한글 폰트 없음: 기본 폰트 사용")
             if platform.system() == "Linux":
-                print("💡 나눔 폰트 설치: sudo apt install fonts-nanum fonts-noto-cjk")
+                print("나눔 폰트 설치: sudo apt install fonts-nanum fonts-noto-cjk")
             return 'sans-serif'
             
     except Exception as e:
-        print(f"⚠️ 폰트 설정 오류: {e}")
+        print(f"폰트 설정 오류: {e}")
         # 최후의 안전망
         try:
             plt.rcParams['font.family'] = ['sans-serif']
@@ -190,7 +190,7 @@ def get_optimal_figure_size():
                 # exe 환경에서는 기본값 사용 (안전)
                 screen_width = 1024
                 screen_height = 768
-                print("🔧 exe 빌드 환경: 기본 화면 크기 사용 (1024x768)")
+                print("exe 빌드 환경: 기본 화면 크기 사용 (1024x768)")
             elif current_backend == 'Qt5Agg':
                 # Qt5를 먼저 시도
                 try:
@@ -226,13 +226,13 @@ def get_optimal_figure_size():
         
         # 라즈베리파이 일반적인 해상도에 맞춤
         if screen_width <= 800:
-            return (8, 5)   # 매우 작은 화면 (라즈베리파이 터치스크린)
+            return (9, 5)   # 매우 작은 화면 (라즈베리파이 터치스크린)
         elif screen_width <= 1024:
-            return (10, 6)  # 작은 화면용
+            return (13, 6.5)  # 작은 화면용 - 가로 더 증가: 12 → 13
         elif screen_width <= 1366:
-            return (12, 8)  # 중간 화면용
+            return (16, 8.5)  # 중간 화면용 - 가로 더 증가: 15 → 16
         else:
-            return (16, 10)  # 큰 화면용
+            return (22, 11)  # 큰 화면용 - 가로 더 증가: 20 → 22
     except Exception as e:
         print(f"figure 크기 계산 오류: {e}")
         # 라즈베리파이 기본값
@@ -296,15 +296,15 @@ def check_dependencies():
                 break
         
         if not font_installed:
-            print("⚠️  한글 폰트가 설치되지 않았습니다.")
-            print("💡 설치 명령: sudo apt install fonts-nanum fonts-noto-cjk")
+            print(" 한글 폰트가 설치되지 않았습니다.")
+            print("설치 명령: sudo apt install fonts-nanum fonts-noto-cjk")
     
     if missing_packages:
-        print(f"❌ 누락된 패키지: {', '.join(missing_packages)}")
-        print(f"💡 설치 명령: pip install {' '.join(missing_packages)}")
+        print(f"누락된 패키지: {', '.join(missing_packages)}")
+        print(f"설치 명령: pip install {' '.join(missing_packages)}")
         return False
     
-    print("✅ 모든 필수 패키지가 설치되어 있습니다.")
+    print("모든 필수 패키지가 설치되어 있습니다.")
     return True
 
 # 의존성 확인
@@ -312,7 +312,7 @@ check_dependencies()
 
 # 폰트 크기 설정
 font_sizes = get_font_sizes()
-print(f"📝 폰트 크기 설정: 제목={font_sizes['title']}, 일반={font_sizes['normal']}")
+print(f"폰트 크기 설정: 제목={font_sizes['title']}, 일반={font_sizes['normal']}")
 
 def format_time(seconds):
     """초를 분:초 형태로 변환"""
@@ -327,12 +327,12 @@ DATA_FILE = "monitoring_data.csv"
 
 # 제어신호 송신 설정 (moni → disp)
 def detect_disp_ip():
-    """🔍 실행 환경에 따라 disp.py의 IP 자동 감지"""
+    """실행 환경에 따라 disp.py의 IP 자동 감지"""
     import platform
     
     # Windows 환경에서는 localhost 사용
     if platform.system() == "Windows":
-        print("🪟 Windows 환경 감지: localhost 사용")
+        print("Windows 환경 감지: localhost 사용")
         return "localhost"
     
     # Linux 환경에서는 네트워크 IP 감지
@@ -356,10 +356,9 @@ def detect_disp_ip():
 DISP_IP = detect_disp_ip()  # 자동 감지된 송신기(disp) IP
 CONTROL_PORT = 50001        # 제어 신호 포트
 
-print(f"🎯 제어 신호 타겟: {DISP_IP}:{CONTROL_PORT}")
+print(f"제어 신호 타겟: {DISP_IP}:{CONTROL_PORT}")
 
 udp_thread = None
-udp_receiving = False  # 🔄 UDP 수신 상태 추적
 data_rows = []
 lock = threading.Lock()
 
@@ -377,32 +376,32 @@ current_state = ["대기중"]  # 현재 상태
 
 
 def udp_receiver():
-    global data_rows, last_received_data
+    global data_rows  # 전역 변수 선언 추가
     
     # UDP 소켓 생성
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # 포트 재사용 허용
     
-    # 🚀 성능 최적화: 소켓 버퍼 크기 증가 (패킷 손실 방지)
+    # 성능 최적화: 소켓 버퍼 크기 증가 (패킷 손실 방지)
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)  # 64KB 수신 버퍼
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)  # 64KB 송신 버퍼
-        print("✅ UDP 소켓 버퍼 최적화: 64KB")
+        print("UDP 소켓 버퍼 최적화: 64KB")
     except Exception as e:
-        print(f"⚠️ 소켓 버퍼 설정 실패: {e}")
+        print(f"소켓 버퍼 설정 실패: {e}")
     
-    # 🎯 블로킹 모드 최적화 (CPU 사용량 감소)
+    # 블로킹 모드 최적화 (CPU 사용량 감소)
     try:
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, 0x10)  # 최소 지연 설정
-        print("✅ UDP 소켓 TOS 최적화")
+        print("UDP 소켓 TOS 최적화")
     except Exception:
         pass  # Windows에서 지원하지 않을 수 있음
     
     sock.bind((UDP_IP, UDP_PORT))
-    sock.settimeout(0.05)  # 🔧 타임아웃 단축: 0.1초 → 0.05초 (응답성 향상)
-    print("🚀 UDP 수신기 시작됨 (성능 최적화)")
+    sock.settimeout(0.05)  # 타임아웃 단축: 0.1초 → 0.05초 (응답성 향상)
+    print("UDP 수신기 시작됨 (성능 최적화)")
     
-    # 📊 성능 카운터 추가
+    # 성능 카운터 추가
     packet_count = 0
     error_count = 0
     last_stats_time = time.time()
@@ -420,7 +419,7 @@ def udp_receiver():
             except socket.timeout:
                 break
         if discarded_count > 0:
-            print(f"🧹 이전 UDP 데이터 {discarded_count}개 정리됨")
+            print(f"이전 UDP 데이터 {discarded_count}개 정리됨")
         sock.settimeout(0.1)  # 원래 타임아웃으로 복원
     except Exception as e:
         print(f"UDP 버퍼 정리 중 오류: {e}")
@@ -436,70 +435,36 @@ def udp_receiver():
         
         # UDP에서 데이터 수신
         try:
-            packet, addr = sock.recvfrom(4096)  # 🔧 버퍼 크기 증가: 2048 → 4096
-            line = packet.decode('utf-8', errors='ignore').strip()  # 🛡️ 안전한 디코딩
+            packet, addr = sock.recvfrom(4096)  # 버퍼 크기 증가: 2048 → 4096
+            line = packet.decode('utf-8', errors='ignore').strip()  # 안전한 디코딩
             current_time = time.time()
             
-            # 📊 성능 통계 업데이트 (로깅 최소화)
+            # 성능 통계 업데이트
             packet_count += 1
-            if current_time - last_stats_time >= 30.0:  # 30초마다만 통계 출력
-                print(f"📊 성능 통계: {packet_count}패킷 수신")
-                packet_count = 0
-                error_count = 0
+            
+            # 1초(1000ms)마다 수신한 패킷 원본 출력 (그래프 업데이트와 동기화)
+            if current_time - last_stats_time >= 1.0:
+                print(f"{line}")
                 last_stats_time = current_time
                 
         except socket.timeout:
             # OFF 상태인지 다시 확인
             if not data_on[0]:
-                print("🔴 UDP 수신기: OFF 상태 감지, 수신 중단")
+                # print("UDP 수신기: OFF 상태 감지, 수신 중단")
                 break
-                
-            # 🚨 고급 타임아웃 감지 (데이터 누락 분석)
-            timeout_time = time.time()
-            if hasattr(udp_receiver, 'last_data_time'):
-                time_since_last = timeout_time - udp_receiver.last_data_time
-                if time_since_last > 2.0:  # 2초 이상 데이터 없음
-                    print(f"🚨 장시간 데이터 없음: {time_since_last:.1f}초")
-                    # 소켓 상태 체크 및 복구 시도
-                    try:
-                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-                        print("🔧 소켓 버퍼 재설정 시도")
-                    except Exception:
-                        pass
+            # 타임아웃은 정상 동작이므로 조용히 계속
             continue
             
         except (UnicodeDecodeError, socket.error) as e:
             error_count += 1
-            error_msg = str(e)
-            
-            # 🛡️ 특정 오류별 처리
-            if "Transport endpoint is not connected" in error_msg:
-                print(f"🔌 연결 오류 #{error_count}: UDP 연결이 끊어짐. 재연결 시도...")
-                try:
-                    sock.close()
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    sock.bind((UDP_IP, UDP_PORT))
-                    sock.settimeout(0.05)
-                    print("✅ UDP 소켓 재연결 성공")
-                    error_count = 0  # 성공 시 오류 카운트 리셋
-                except Exception as reconnect_error:
-                    print(f"❌ 재연결 실패: {reconnect_error}")
-            elif "Connection refused" in error_msg:
-                print(f"🚫 연결 거부 #{error_count}: 송신측이 응답하지 않음")
-            else:
-                print(f"🚫 UDP 수신 오류 #{error_count}: {e}")
-            
+            # print(f"UDP 수신 오류 #{error_count}: {e}")
             if error_count > 10:  # 연속 오류 시 소켓 재시작
-                print("🔄 너무 많은 오류로 UDP 소켓 재시작 필요")
+                # print("UDP 소켓 재시작 필요")
                 break
             continue
         except Exception as e:
             error_count += 1
-            print(f"❌ 예상치 못한 UDP 오류: {e}")
-            # 📊 상세 오류 분석 
-            import traceback
-            print(f"🔍 오류 상세: {traceback.format_exc()}")
+            # print(f"예상치 못한 UDP 오류: {e}")
             continue
         
         if not line:
@@ -511,37 +476,35 @@ def udp_receiver():
             temp_state = line.split('|', 1)[0]
             current_index = current_sequence_index[0]
             
-            # 🔍 상태 검증 로그 (성능을 위해 생략)
+            # print(f"상태 검증: 현재인덱스={current_index}({expected_state_sequence[current_index]}), 수신상태={temp_state}")
             
             # 데이터가 없거나 처음 수신하는 경우 - 어떤 상태든 허용
             if len(data_rows) == 0:
                 if temp_state in expected_state_sequence:
                     new_index = expected_state_sequence.index(temp_state)
                     current_sequence_index[0] = new_index
-                    print(f"✅ 첫 데이터 수신: {temp_state} (인덱스 {new_index})")
+                    # print(f"첫 데이터 수신: {temp_state} (인덱스 {new_index})")
                 else:
-                    print(f"✅ 알 수 없는 상태이지만 첫 데이터로 허용: {temp_state}")
+                    pass
+                    # print(f"알 수 없는 상태이지만 첫 데이터로 허용: {temp_state}")
             elif temp_state == "IDLE":
                 # IDLE은 언제나 허용 (리셋)
                 current_sequence_index[0] = 0
-                print(f"✅ IDLE 상태로 리셋: 인덱스 0")
+                # print(f"IDLE 상태로 리셋: 인덱스 0")
             elif temp_state in expected_state_sequence:
                 expected_index = expected_state_sequence.index(temp_state)
                 
                 # 다음 순서 상태이면 허용
                 if expected_index == current_index + 1:
                     current_sequence_index[0] = expected_index
-                    print(f"✅ 다음 상태로 진행: {temp_state} (인덱스 {expected_index})")
+                    # print(f"다음 상태로 진행: {temp_state} (인덱스 {expected_index})")
                 # 현재 상태와 같으면 허용 (반복)
                 elif expected_index == current_index:
-                    print(f"✅ 현재 상태 반복: {temp_state}")
-                # 🔧 순서가 앞서가더라도 허용 (실시간 동기화)
-                elif expected_index > current_index:
-                    current_sequence_index[0] = expected_index
-                    print(f"🔄 상태 동기화: {temp_state} (인덱스 {current_index} → {expected_index})")
+                    pass
+                    # print(f"현재 상태 반복: {temp_state}")
                 # 그 외는 무시
                 else:
-                    print(f"🚫 순서 불일치 데이터 무시 (현재인덱스: {current_index}, 수신인덱스: {expected_index}): {line[:50]}...")
+                    # print(f"순서 불일치 데이터 무시 (현재인덱스: {current_index}, 수신인덱스: {expected_index}): {line[:50]}...")
                     continue
         
         # 새로운 데이터 형식 파싱: STATE|field1:value1,field2:value2,...
@@ -575,7 +538,7 @@ def udp_receiver():
             last_received_data["timestamp"] = timestamp
         
         with lock:
-            # 📊 메모리 최적화: 최대 데이터 개수 제한 (메모리 누수 방지)
+            # 메모리 최적화: 최대 데이터 개수 제한 (메모리 누수 방지)
             MAX_DATA_POINTS = 3600  # 1시간 분량 (1초 간격 기준)
             
             # 파싱된 데이터를 저장
@@ -583,48 +546,35 @@ def udp_receiver():
             # 마지막 수신 시간 기록 (데이터 누락 감지용)
             udp_receiver.last_data_time = timestamp
             
-            # 🔄 상태 변경 감지만 로그 (GUI 업데이트는 타이머에서)
-            if hasattr(udp_receiver, 'last_state') and udp_receiver.last_state != parsed_data['STATE']:
-                print(f"🔄 상태 변경 감지: {getattr(udp_receiver, 'last_state', 'Unknown')} → {parsed_data['STATE']}")
-            udp_receiver.last_state = parsed_data['STATE']
-            
-            # 🧹 메모리 관리: 오래된 데이터 자동 정리
+            # 메모리 관리: 오래된 데이터 자동 정리
             if len(data_rows) > MAX_DATA_POINTS:
                 # 앞의 600개(10분) 데이터 제거하여 메모리 절약
                 removed_count = len(data_rows) - MAX_DATA_POINTS + 600
                 data_rows = data_rows[removed_count:]
-                print(f"🧹 메모리 정리: {removed_count}개 오래된 데이터 제거")
+                # print(f"메모리 정리: {removed_count}개 오래된 데이터 제거")
             
-            # ⚡ 성능 최적화: 간격 계산 (선택적 로깅)
+            # 성능 최적화: 간격 계산 (선택적 로깅)
             if len(data_rows) > 1:
                 prev_timestamp = data_rows[-2][0]
                 interval = timestamp - prev_timestamp
                 if interval > 1.5:  # 1.5초 이상 간격이면 경고
-                    print(f"🚨 수신: {parsed_data['STATE']} - 긴 간격! [{interval:.3f}초] 누락의심")
-                elif packet_count % 10 == 0:  # 10개마다 1개만 출력
-                    print(f"✅ {parsed_data['STATE']} - {len(parsed_data)-1}필드 [{interval:.3f}초]")
-            else:
-                print(f"🎯 첫 데이터: {parsed_data['STATE']} - {len(parsed_data)-1}개 필드")
+                    pass
+                    # print(f"경고: {parsed_data['STATE']} - 긴 간격 감지! 누락의심")
         
-        # 💾 메모리 효율적 저장 (실시간 파일 저장 제거)
+        # 메모리 효율적 저장 (실시간 파일 저장 제거)
     
-    # 🛡️ 안전한 UDP 수신기 종료
+    # 안전한 UDP 수신기 종료
     try:
         if sock:
-            try:
-                # UDP 소켓의 경우 shutdown이 필요하지 않을 수 있음
-                sock.shutdown(socket.SHUT_RDWR)  
-            except OSError as shutdown_error:
-                # UDP 소켓에서 shutdown 오류는 무시 가능
-                if "Transport endpoint is not connected" not in str(shutdown_error):
-                    print(f"⚠️ 소켓 종료 시그널 오류 (무시됨): {shutdown_error}")
-            finally:
-                sock.close()
-        print("✅ UDP 수신기 정상 종료됨")
+            sock.shutdown(socket.SHUT_RDWR)  # 소켓 종료 시그널
+            sock.close()
+        # print("UDP 수신기 정상 종료됨")
     except Exception as e:
-        print(f"⚠️ UDP 소켓 종료 오류: {e}")
+        pass
+        # print(f"UDP 소켓 종료 오류: {e}")
     finally:
-        print(f"📊 최종 통계: {packet_count}패킷 처리, {error_count}오류 발생")
+        pass
+        # print(f"최종 통계: {packet_count}패킷 처리, {error_count}오류 발생")
 
 # --- 상태별 필드 정의 (SOC, 유량 공통 추가) ---
 state_fields = {
@@ -644,11 +594,11 @@ print(f"📱 화면 크기 설정: {optimal_size[0]}×{optimal_size[1]} 인치")
 # 라즈베리파이 최적화된 레이아웃
 gs = gridspec.GridSpec(3, 3, 
                       height_ratios=[0.08, 0.82, 0.10], 
-                      width_ratios=[1.6, 1.4, 2.8],
-                      hspace=0.08, wspace=0.10)
+                      width_ratios=[0.9, 0.6, 1.85],
+                      hspace=0.08, wspace=0.02)  # wspace 축소: 0.04 → 0.02
 
-# 작은 화면에 맞는 여백 조정
-fig.subplots_adjust(left=0.03, right=0.97, top=0.95, bottom=0.08)
+# 여백 조정 - 오른쪽 여백 더 증가
+fig.subplots_adjust(left=0.02, right=0.94, top=0.95, bottom=0.08)
 
 # 상단: 버튼 영역
 ax_btn_area = plt.subplot(gs[0, :])
@@ -671,89 +621,20 @@ ax_slider_area.axis('off')
 
 # 그래프에 표시할 필드와 해당 색상, 심볼 정의 (확장 가능)
 plot_field_config = {
-    # 배터리 관련
     "SOC": {
         "color": "#2E8B57",      # 진한 초록 (Sea Green)
-        "emoji": "[BAT]",        # 배터리 표시
+        "emoji": "",        # 배터리 표시
         "unit": "%"
     },
-    
-    # 유량 관련
     "유량": {
-        "color": "#4169E1",      # 파란색 (Royal Blue)
-        "emoji": "[FLOW]",       # 유량 표시
+        "color": "#FF6347",      # 빨간색 (Tomato) - 그래프와 일치
+        "emoji": "",       # 유량 표시
         "unit": "g/s"
     },
-    
-    # 온도 관련
-    "외기온도": {
-        "color": "#FF6347",      # 빨간색 (Tomato)
-        "emoji": "[TEMP]",       # 온도 표시
-        "unit": "°C"
-    },
-    "출력수소온도": {
-        "color": "#FF4500",      # 주황빨강 (Orange Red)
-        "emoji": "[H2TEMP]",     # 수소 온도
-        "unit": "°C"
-    },
-    "MT": {
-        "color": "#DC143C",      # 진한 빨강 (Crimson)
-        "emoji": "[MT]",         # MT 온도
-        "unit": "°C"
-    },
-    
-    # 압력 관련
-    "인렛압력": {
-        "color": "#8A2BE2",      # 보라색 (Blue Violet)
-        "emoji": "[PIN]",        # 입구 압력
-        "unit": "bar"
-    },
-    "출력압력": {
-        "color": "#9932CC",      # 진한 보라 (Dark Orchid)
-        "emoji": "[POUT]",       # 출구 압력
-        "unit": "bar"
-    },
-    "초기압력": {
-        "color": "#BA55D3",      # 중간 보라 (Medium Orchid)
-        "emoji": "[PINIT]",      # 초기 압력
-        "unit": "bar"
-    },
-    "타겟압력": {
-        "color": "#DA70D6",      # 연한 보라 (Orchid)
-        "emoji": "[PTGT]",       # 타겟 압력
-        "unit": "bar"
-    },
-    "설정출력압력": {
-        "color": "#DDA0DD",      # 매우 연한 보라 (Plum)
-        "emoji": "[PSET]",       # 설정 압력
-        "unit": "bar"
-    },
     "퓨얼링압력": {
-        "color": "#663399",      # 진한 보라 (Rebecca Purple)
-        "emoji": "[PFUEL]",      # 퓨얼링 압력
+        "color": "#4169E1",      # 파란색 (Royal Blue) - 그래프와 일치
+        "emoji": "",      # 압력 표시
         "unit": "bar"
-    },
-    "MP": {
-        "color": "#4B0082",      # 인디고 (Indigo)
-        "emoji": "[MP]",         # MP 압력
-        "unit": "bar"
-    },
-    
-    # 기타 값들
-    "APRR": {
-        "color": "#20B2AA",      # 청록색 (Light Sea Green)
-        "emoji": "[APRR]",       # APRR 값
-        "unit": ""
-    },
-    "최종충전량": {
-        "color": "#FF69B4",      # 핫 핑크 (Hot Pink)
-        "emoji": "[FUEL]",       # 충전량
-        "unit": "kg"
-    },
-    "최종충전금액": {
-        "color": "#FFD700",      # 금색 (Gold)
-        "emoji": "[COST]",       # 비용
-        "unit": "원"
     }
 }
 
@@ -873,6 +754,14 @@ def update_state_panel(idx=None):
     state_names_kr = ["대기", "시작", "충전", "종료"]
     colors_state = ['lightblue', 'lightyellow', 'lightgreen', 'lightpink']
     
+    # 한글-영문 상태명 매핑
+    state_kr_to_en = {
+        "대기": "IDLE",
+        "시작": "STARTUP", 
+        "충전": "MAIN_FUELING",
+        "종료": "SHUTDOWN"
+    }
+    
     current = current_state[0] if not cursor_active[0] else None
     cursor_data = None
     
@@ -884,18 +773,26 @@ def update_state_panel(idx=None):
                 row = data_rows[idx]
                 if len(row) > 1 and isinstance(row[1], dict):
                     current = row[1].get('STATE', 'UNKNOWN')
-                    cursor_data = row
+                    # 한글 상태명을 영문으로 변환
+                    if current in state_kr_to_en:
+                        current = state_kr_to_en[current]
+                    cursor_data = [row[0], row[1].copy()]  # 복사본 생성
         elif data_rows and not cursor_active[0]:
             # 실시간 모드: 최신 데이터 사용
             row = data_rows[-1]
             if len(row) > 1 and isinstance(row[1], dict):
                 current = row[1].get('STATE', 'UNKNOWN')
-                cursor_data = row    # 커서 정보 표시 (커서 활성화시에만) - 깔끔한 박스로 표시
+                # 한글 상태명을 영문으로 변환
+                if current in state_kr_to_en:
+                    current = state_kr_to_en[current]
+                cursor_data = [row[0], row[1].copy()]  # 복사본 생성
+    
+    # 커서 정보 표시 (커서 활성화시에만) - 깔끔한 박스로 표시
     if cursor_active[0] and cursor_data:
         timestamp = cursor_data[0] - (data_rows[0][0] if data_rows else 0)
         
         # 커서 정보를 하나의 박스에 정리해서 표시
-        cursor_info_lines = [f"[CURSOR] 시간: {format_time(timestamp)}"]
+        cursor_info_lines = [f" 시간: {format_time(timestamp)}"]
         
         # 딕셔너리에서 그래프 표시 필드들의 값 수집
         if len(cursor_data) > 1 and isinstance(cursor_data[1], dict):
@@ -917,69 +814,32 @@ def update_state_panel(idx=None):
                      bbox=dict(boxstyle="round,pad=0.4", facecolor='lightyellow', 
                               alpha=0.95, edgecolor='red', linewidth=2))
     
-    # 실시간 모드일 때 필드 표시 (커서 비활성화 시) - 최대 4개만 표시
+    # 실시간 모드일 때 SOC와 유량 표시 (커서 비활성화 시)
     elif not cursor_active[0] and data_rows:
         latest_row = data_rows[-1]
         if len(latest_row) > 1 and isinstance(latest_row[1], dict):
             data_dict = latest_row[1]
             
-            # 📊 스크롤 기능: 전역 변수로 현재 스크롤 위치 관리
-            if not hasattr(update_state_panel, 'scroll_offset'):
-                update_state_panel.scroll_offset = 0
-                update_state_panel.max_display = 4  # 최대 4개 표시
+            # 실시간 정보를 하나의 박스에 정리해서 표시
+            live_info_lines = [f"[LIVE] 실시간 데이터"]
             
-            # 표시 가능한 필드들 수집
-            available_fields = []
+            # SOC와 유량만 표시
             for field_name, field_config in plot_field_config.items():
-                if field_name in data_dict and field_name != 'STATE':  # STATE 제외
+                if field_name in data_dict:
                     marker = field_config["emoji"]
                     unit = field_config.get("unit", "")
                     value = data_dict[field_name]
                     value_text = f"{marker} {field_name}: {value}"
                     if unit:
                         value_text += f" {unit}"
-                    available_fields.append(value_text)
+                    live_info_lines.append(value_text)
             
-            # 📊 스크롤 처리: 현재 오프셋에서 최대 4개 필드만 표시
-            total_fields = len(available_fields)
-            max_offset = max(0, total_fields - update_state_panel.max_display)
-            
-            # 오프셋 범위 제한
-            update_state_panel.scroll_offset = max(0, min(update_state_panel.scroll_offset, max_offset))
-            
-            # 현재 페이지의 필드들 선택
-            start_idx = update_state_panel.scroll_offset
-            end_idx = start_idx + update_state_panel.max_display
-            displayed_fields = available_fields[start_idx:end_idx]
-            
-            # 스크롤 정보와 함께 헤더 생성
-            scroll_info = ""
-            if total_fields > update_state_panel.max_display:
-                current_page = (update_state_panel.scroll_offset // update_state_panel.max_display) + 1
-                total_pages = ((total_fields - 1) // update_state_panel.max_display) + 1
-                scroll_info = f" ({current_page}/{total_pages} 페이지)"
-            
-            # 🟢 연결 상태에 따른 Live 표시
-            global udp_receiving
-            if udp_receiving:
-                live_status = "🟢 [LIVE] 실시간 데이터"
-                live_color = 'darkgreen'
-                box_color = 'lightgreen' 
-                box_edge = 'darkgreen'
-            else:
-                live_status = "⚪ [OFFLINE] 연결 대기"
-                live_color = 'gray'
-                box_color = 'lightgray'
-                box_edge = 'gray'
-                
-            live_info_lines = [f"{live_status}{scroll_info}"] + displayed_fields
-            
-            # 실시간 정보 박스 표시 (연결 상태별 색상)
+            # 실시간 정보 박스 표시 (동적 폰트 크기)
             live_text = "\n".join(live_info_lines)
             ax_state.text(0.5, 0.93, live_text, fontsize=font_sizes['normal'], 
-                         fontweight='bold', color=live_color, ha='center', va='top',
-                         bbox=dict(boxstyle="round,pad=0.4", facecolor=box_color, 
-                                  alpha=0.95, edgecolor=box_edge, linewidth=2))
+                         fontweight='bold', color='darkgreen', ha='center', va='top',
+                         bbox=dict(boxstyle="round,pad=0.4", facecolor='lightgreen', 
+                                  alpha=0.95, edgecolor='darkgreen', linewidth=2))
     
     # 4개 상태를 2x2 형태로 배치 - 확장된 크기와 간격
     available_height = 0.75  # 사용 가능한 높이 확장
@@ -1029,17 +889,32 @@ def update_state_panel(idx=None):
                               alpha=0.95, edgecolor='darkblue' if is_current else 'gray',
                               linewidth=1.5))
         
-        # 현재 상태의 모든 데이터 표시
-        if is_current and cursor_data and len(cursor_data) > 1 and isinstance(cursor_data[1], dict):
+        # 각 상태의 데이터 표시 (현재 상태 또는 커서 위치의 상태)
+        # 커서 활성화 시: 커서 위치의 각 상태별 데이터 표시
+        # 실시간 모드 시: 현재 상태만 데이터 표시
+        should_show_data = False
+        state_data_dict = None
+        
+        if cursor_active[0] and cursor_data:
+            # 커서 모드: 모든 상태에 데이터 표시 가능하도록 준비
+            should_show_data = (state == current)  # 현재 커서 위치의 상태만 표시
+            if should_show_data and len(cursor_data) > 1 and isinstance(cursor_data[1], dict):
+                state_data_dict = cursor_data[1]
+        elif is_current and cursor_data:
+            # 실시간 모드: 현재 활성 상태만 표시
+            should_show_data = True
+            if len(cursor_data) > 1 and isinstance(cursor_data[1], dict):
+                state_data_dict = cursor_data[1]
+        
+        if should_show_data and state_data_dict:
             y_detail = y_start + actual_box_height - 0.05  # 상태명 아래부터 시작
             
-            # 박스 내에서 표시 가능한 최대 라인 수 계산 (더 많은 내용 표시)
-            max_lines = min(12, int((actual_box_height - 0.04) / 0.018))  # 라인 간격 최적화
+            # 박스 내에서 표시 가능한 최대 라인 수 계산
+            max_lines = min(15, int((actual_box_height - 0.04) / 0.016))  # 더 많은 라인 표시
             
             # 딕셔너리에서 모든 필드 표시 (STATE 제외)
             field_count = 0
-            data_dict = cursor_data[1]  # 딕셔너리 데이터
-            for field, value in data_dict.items():
+            for field, value in state_data_dict.items():
                 if field == 'STATE':  # STATE는 이미 표시했으므로 제외
                     continue
                 if field_count >= max_lines:  # 박스 크기 내에서만 표시
@@ -1055,20 +930,20 @@ def update_state_panel(idx=None):
                     display_text = f"{marker} {field}: {value}"
                     if unit:
                         display_text += f" {unit}"
-                    font_size = 7.5  # 폰트 크기 최적화
+                    font_size = 9.5  # 폰트 크기: 7.5 → 9.5 (+2pt)
                 else:
                     color_text = 'black'
                     weight_text = 'normal'
                     display_text = f"{field}: {value}"
-                    font_size = 6.5  # 폰트 크기 최적화
+                    font_size = 8.5  # 폰트 크기: 6.5 → 8.5 (+2pt)
                 
-                # 텍스트 길이 제한 (확장된 박스에 맞춰 조정)
-                if len(display_text) > 30:
-                    display_text = display_text[:27] + "..."
+                # 텍스트 길이 제한 (박스에 맞춰 조정)
+                if len(display_text) > 28:
+                    display_text = display_text[:25] + "..."
                 
-                # Y 위치 계산 (최적화된 라인 간격)
-                text_y = y_detail - (field_count * 0.018)
-                if text_y > y_end + 0.02:  # 박스 아래쪽 여백 확보
+                # Y 위치 계산 (더 촘촘한 라인 간격)
+                text_y = y_detail - (field_count * 0.016)
+                if text_y > y_end + 0.01:  # 박스 아래쪽 여백 확보
                     ax_state.text(x_start + 0.01, text_y, display_text, fontsize=font_size, 
                                 color=color_text, fontweight=weight_text, 
                                 verticalalignment='top')
@@ -1086,11 +961,11 @@ def update_current_values():
     ax_current.set_ylim(0, 1)
     
     # 제목
-    ax_current.text(0.5, 0.95, "실시간 수신 데이터", fontsize=14, fontweight='bold', 
+    ax_current.text(0.5, 0.95, "실시간 수신 데이터", fontsize=16, fontweight='bold',  # 14 → 16
                    ha='center', va='top', color='darkgreen')
     
     if not data_rows:
-        ax_current.text(0.5, 0.5, "데이터 수신 대기 중...", fontsize=12, 
+        ax_current.text(0.5, 0.5, "데이터 수신 대기 중...", fontsize=14,  # 12 → 14
                        ha='center', va='center', color='gray')
         return
     
@@ -1102,14 +977,22 @@ def update_current_values():
     data_dict = latest_row[1]
     current_state_name = data_dict.get('STATE', 'UNKNOWN')
     
-    # 현재 상태 표시
-    ax_current.text(0.5, 0.85, f"현재 상태: {current_state_name}", fontsize=12, 
+    # 현재 상태 표시 (상태별 색상 적용)
+    state_color_map = {
+        "IDLE": "lightblue",
+        "STARTUP": "lightyellow",
+        "MAIN_FUELING": "lightgreen",
+        "SHUTDOWN": "lightpink"
+    }
+    current_state_color = state_color_map.get(current_state_name, "lightgray")
+    
+    ax_current.text(0.5, 0.85, f"현재 상태: {current_state_name}", fontsize=14,  # 12 → 14
                    fontweight='bold', ha='center', va='center',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='lightblue', alpha=0.8))
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor=current_state_color, alpha=0.8))
     
     # 수신 시간 표시
     current_time = latest_row[0] - (data_rows[0][0] if data_rows else 0)
-    ax_current.text(0.5, 0.75, f"수신 시간: {format_time(current_time)}", fontsize=10, 
+    ax_current.text(0.5, 0.75, f"수신 시간: {format_time(current_time)}", fontsize=12,  # 10 → 12
                    ha='center', va='center')
     
     # 딕셔너리에서 모든 필드 값들 표시 (STATE 제외)
@@ -1121,9 +1004,8 @@ def update_current_values():
         if field_count >= 12:  # 최대 12개 필드 표시
             break
         
-        # 📊 자동 스타일 적용
+        # 그래프 표시 필드는 강조
         if field in plot_field_config:
-            # 기존 설정된 필드
             field_config = plot_field_config[field]
             color = field_config["color"]
             marker = field_config["emoji"]
@@ -1132,55 +1014,12 @@ def update_current_values():
             if unit:
                 display_text += f" {unit}"
             font_weight = 'bold'
-            font_size = 9
+            font_size = 11  # 폰트 크기: 9 → 11 (+2pt)
         else:
-            # 🎨 자동 스타일 생성
-            field_lower = field.lower()
-            if "온도" in field_lower or "temp" in field_lower:
-                color = '#FF6347'
-                marker = "[TEMP]"
-                unit = "°C"
-            elif "압력" in field_lower or "pressure" in field_lower or field in ["MP", "APRR"]:
-                color = '#8A2BE2'
-                marker = "[PRESS]"
-                unit = "bar"
-            elif "유량" in field_lower or "flow" in field_lower:
-                color = '#4169E1'
-                marker = "[FLOW]"
-                unit = "g/s"
-            elif "soc" in field_lower or "배터리" in field_lower:
-                color = '#2E8B57'
-                marker = "[BAT]"
-                unit = "%"
-            elif "금액" in field_lower or "cost" in field_lower or "원" in field_lower:
-                color = '#FFD700'
-                marker = "[COST]"
-                unit = "원"
-            elif "량" in field_lower or "weight" in field_lower or "kg" in field_lower:
-                color = '#FF69B4'
-                marker = "[WEIGHT]"
-                unit = "kg"
-            elif "시간" in field_lower or "time" in field_lower:
-                color = '#20B2AA'
-                marker = "[TIME]"
-                unit = ""
-            else:
-                color = '#666666'
-                marker = "[DATA]"
-                unit = ""
-            
-            display_text = f"{marker} {field}: {value}"
-            if unit:
-                display_text += f" {unit}"
-            
-            # 숫자 값이면 강조, 아니면 보통
-            try:
-                float(value)
-                font_weight = 'bold'
-                font_size = 9
-            except (ValueError, TypeError):
-                font_weight = 'normal'
-                font_size = 8
+            color = 'black'
+            display_text = f"{field}: {value}"
+            font_weight = 'normal'
+            font_size = 10  # 폰트 크기: 8 → 10 (+2pt)
         
         # Y 위치가 패널 아래를 벗어나지 않도록 체크
         if y_pos > 0.05:  # 하단 여백 확보
@@ -1196,23 +1035,10 @@ def update_current_values():
 def update_graph():
     global cursor_line, all_graph_axes
     
-    # OFF 상태일 때는 그래프 초기화하지 않지만 커서는 업데이트
-    if not data_on[0]:
-        # OFF 상태에서도 커서 라인 업데이트 (안전한 제거)
-        if cursor_active[0] and data_rows and cursor_idx[0] < len(data_rows):
-            # 전역 cursor_line만 안전하게 제거
-            if cursor_line:
-                try:
-                    if cursor_line in ax_graph.lines:
-                        cursor_line.remove()
-                except Exception:
-                    pass
-                cursor_line = None
-            
-            # 새 커서 라인 그리기 (기본 축에만)
-            x_val = data_rows[cursor_idx[0]][0] - data_rows[0][0] if data_rows else 0
-            cursor_line = ax_graph.axvline(x=x_val, color='red', linestyle='-', linewidth=2, alpha=0.8, zorder=10)
-            fig.canvas.draw_idle()
+    # OFF 상태에서도 데이터가 있으면 그래프 표시 (CSV 로드 후 보기 위해)
+    # 단, 실시간 수신 중이 아닐 때만 (커서 모드)
+    if not data_on[0] and not cursor_active[0]:
+        # OFF 상태이고 커서도 비활성화면 그래프 업데이트 안함
         return
     
     # ON 상태일 때만 축 정리 및 그래프 클리어
@@ -1241,84 +1067,26 @@ def update_graph():
         
         # 모든 데이터 포인트 표시 (누적)
         recent_data = data_rows
+        xs = [row[0] - data_rows[0][0] for row in recent_data] if data_rows else []
         
-        # 📊 상태별 공통 필드 분석 시스템
-        # 각 상태별로 나타나는 필드들 분석
-        state_fields = {}
+        # 모든 데이터에서 사용 가능한 필드들을 동적으로 수집
+        all_fields = set()
         for row in recent_data:
             if len(row) > 1 and isinstance(row[1], dict):
-                state = row[1].get('STATE', 'UNKNOWN')
-                if state not in state_fields:
-                    state_fields[state] = set()
-                # STATE 제외한 필드들만 수집
-                fields = set(row[1].keys())
-                fields.discard('STATE')
-                state_fields[state].update(fields)
+                all_fields.update(row[1].keys())
         
-        # 🎯 모든 상태에서 공통으로 나타나는 필드들만 선택
-        if len(state_fields) > 1:
-            # 여러 상태가 있을 때 - 교집합 (모든 상태에 공통인 필드)
-            common_fields = set.intersection(*state_fields.values()) if state_fields else set()
-            print(f"🔍 감지된 상태들: {list(state_fields.keys())}")
-            print(f"🎯 모든 상태 공통 필드: {sorted(common_fields)}")
-        else:
-            # 하나의 상태만 있을 때 - 해당 상태의 모든 필드
-            common_fields = next(iter(state_fields.values())) if state_fields else set()
-            print(f"🔍 현재 상태: {list(state_fields.keys())}")
-            print(f"🎯 현재 상태 필드: {sorted(common_fields)}")
-        
-        # 📊 특정 필드만 그래프에 표시 (SOC, 유량, 퓨얼링압력)
-        target_fields = ["SOC", "유량", "퓨얼링압력"]
-        graph_fields = []
-        
-        for field in target_fields:
-            if field in common_fields:
-                # 최근 데이터에서 이 필드가 숫자로 변환 가능한지 확인
-                has_numeric_data = False
-                for row in recent_data[-10:]:  # 최근 10개 데이터만 확인
-                    if len(row) > 1 and isinstance(row[1], dict):
-                        field_value = row[1].get(field)
-                        if field_value is not None:
-                            try:
-                                float(field_value)
-                                has_numeric_data = True
-                                break
-                            except (ValueError, TypeError):
-                                continue
-                
-                if has_numeric_data:
-                    graph_fields.append(field)
-        
-        # 📊 필드별 고정 색상 매핑 (범례, 그래프 선, Y축 통일)
-        field_colors = {
-            "SOC": "#2E8B57",         # 바다색 (SeaGreen)
-            "유량": "#0000FF",         # 파란색 (Blue)  
-            "퓨얼링압력": "#FF6347"     # 토마토색 (Tomato)
-        }
-        
-        print(f"🔍 자동 감지된 그래프 필드: {graph_fields}")
+        # plot_field_config에 정의된 필드들 중 실제 데이터에 있는 것만 선택
+        # 순서를 명시적으로 지정하여 항상 같은 순서로 표시
+        preferred_order = ["SOC", "유량", "퓨얼링압력"]
+        graph_fields = [field for field in preferred_order if field in all_fields]
         
         axes_list = []  # Y축 리스트
         plot_count = 0
         
-        # �️ 변수 초기화 (안전장치)
-        sample_data = recent_data
-        xs = []
-        
-        # �🚀 성능 최적화: 큰 데이터셋 샘플링
-        if len(recent_data) > 200:  # 200개 이상이면 샘플링
-            step = max(1, len(recent_data) // 150)  # 최대 150개로 제한
-            sample_data = recent_data[::step]
-        else:
-            sample_data = recent_data  # 작은 데이터셋은 그대로 사용
-        
-        # 📊 샘플링된 데이터로 X축 계산
-        xs = [row[0] - data_rows[0][0] for row in sample_data] if data_rows else []
-            
         # 동적으로 발견된 필드들을 그래프로 표시
         for i, field in enumerate(graph_fields):
             ys = []
-            for row in sample_data:
+            for row in recent_data:
                 val = None
                 if len(row) > 1 and isinstance(row[1], dict):
                     field_value = row[1].get(field)
@@ -1331,122 +1099,47 @@ def update_graph():
             
             # None이 아닌 값이 하나라도 있으면 그래프에 추가
             if any(y is not None for y in ys):
-                # 📊 Y축 좌우 균등 분배 시스템
-                total_fields = len(graph_fields)
-                left_count = (total_fields + 1) // 2   # 왼쪽에 더 많이 배치 (홀수일 때)
-                right_count = total_fields // 2        # 오른쪽
-                
+                # 첫 번째 필드는 기본 Y축 사용
                 if plot_count == 0:
-                    # 첫 번째는 항상 기본 왼쪽 축
                     current_ax = ax_graph
-                    axis_side = "left"
-                    axis_position = 0
-                elif plot_count < left_count:
-                    # 왼쪽 축들
-                    current_ax = ax_graph.twinx()
-                    current_ax._is_twin_axis = True
-                    all_graph_axes.append(current_ax)
-                    axis_side = "left"
-                    axis_position = plot_count
-                    # 왼쪽에 여러 축 배치 (안쪽으로 들여쓰기)
-                    current_ax.yaxis.set_ticks_position('left')
-                    current_ax.yaxis.set_label_position('left')
-                    if plot_count > 0:
-                        current_ax.spines['left'].set_position(('outward', 60 * plot_count))
-                        current_ax.spines['right'].set_visible(False)
                 else:
-                    # 오른쪽 축들
+                    # 두 번째부터는 새로운 Y축 생성
                     current_ax = ax_graph.twinx()
-                    current_ax._is_twin_axis = True
-                    all_graph_axes.append(current_ax)
-                    axis_side = "right"
-                    right_index = plot_count - left_count
-                    axis_position = right_index
-                    # 오른쪽에 여러 축 배치 (바깥쪽으로 확장)
-                    current_ax.yaxis.set_ticks_position('right')
-                    current_ax.yaxis.set_label_position('right')
-                    if right_index > 0:
-                        current_ax.spines['right'].set_position(('outward', 60 * right_index))
-                    current_ax.spines['left'].set_visible(False)
+                    current_ax._is_twin_axis = True  # 표시용
+                    all_graph_axes.append(current_ax)  # 클릭 감지용 리스트에 추가
+                    # Y축 위치 조정 (간격 더 축소)
+                    if plot_count > 1:
+                        current_ax.spines['right'].set_position(('outward', 35 * (plot_count - 1)))
                 
-                # 📊 필드별 고정 색상 적용 (범례, 그래프, Y축 통일)
-                color = field_colors.get(field, colors[i % len(colors)])  # 고정 색상 우선 사용
-                
-                if field in plot_field_config:
-                    # 기존에 설정된 필드는 해당 설정 사용 (색상 제외)
-                    field_config = plot_field_config[field]
-                    marker_symbol = field_config.get("emoji", "[CUSTOM]")
-                    unit = field_config.get("unit", "")
-                else:
-                    # 🎨 새로운 필드는 자동으로 스타일 생성
-                    
-                    # 필드명 기반 자동 이모지 및 단위 추정
-                    field_lower = field.lower()
-                    if "온도" in field_lower or "temp" in field_lower:
-                        marker_symbol = "[TEMP]"
-                        unit = "°C"
-                    elif "압력" in field_lower or "pressure" in field_lower or field in ["MP", "APRR"]:
-                        marker_symbol = "[PRESS]"
-                        unit = "bar"
-                    elif "유량" in field_lower or "flow" in field_lower:
-                        marker_symbol = "[FLOW]"
-                        unit = "g/s"
-                    elif "soc" in field_lower or "배터리" in field_lower:
-                        marker_symbol = "[BAT]"
-                        unit = "%"
-                    elif "금액" in field_lower or "cost" in field_lower or "원" in field_lower:
-                        marker_symbol = "[COST]"
-                        unit = "원"
-                    elif "량" in field_lower or "weight" in field_lower or "kg" in field_lower:
-                        marker_symbol = "[WEIGHT]"
-                        unit = "kg"
-                    elif "시간" in field_lower or "time" in field_lower:
-                        marker_symbol = "[TIME]"
-                        unit = ""
-                    else:
-                        marker_symbol = "[DATA]"
-                        unit = ""
-                
+                # 필드 설정에서 색상, 이모지, 단위 가져오기
+                field_config = plot_field_config.get(field, {})
+                color = field_config.get("color", colors[i % len(colors)])
+                marker_symbol = field_config.get("emoji", "�")
+                unit = field_config.get("unit", "")
                 label_text = f"{marker_symbol} {field}"
                 if unit:
                     label_text += f" ({unit})"
                 
-                # 🚀 성능 최적화된 그래프 그리기
+                # 그래프 그리기
                 line = current_ax.plot(xs, ys, color=color, 
-                                     label=label_text, marker='.', markersize=1, 
-                                     linewidth=1.5, alpha=0.9)
+                                     label=label_text, marker='o', markersize=3, 
+                                     linewidth=2.5, alpha=0.8)
                 
-                # 🎨 Y축 색상 설정 (축 선만 색칠, 라벨과 틱은 숨김)
-                if axis_side == "left":
-                    # 왼쪽 축들
+                # Y축 색상을 그래프 색상과 동일하게 설정
+                current_ax.tick_params(axis='y', labelcolor=color, colors=color)
+                # Y축 레이블 제거 (숫자만 표시)
+                current_ax.set_ylabel('')
+                current_ax.spines['right'].set_color(color)
+                if plot_count == 0:
                     current_ax.spines['left'].set_color(color)
-                    if axis_position > 0:  # 기본 축이 아닌 경우 오른쪽 스파인 숨김
-                        current_ax.spines['right'].set_visible(False)
-                else:
-                    # 오른쪽 축들
-                    current_ax.spines['right'].set_color(color)
-                    current_ax.spines['left'].set_visible(False)
-                
-                # 🎯 Y축 설정: 한글 라벨 제거, 숫자 범위만 표시
-                if axis_side == "left":
-                    current_ax.tick_params(axis='y', which='both', 
-                                         left=True, right=False, 
-                                         labelleft=True, labelright=False, 
-                                         colors=color, labelsize=8)
-                else:
-                    current_ax.tick_params(axis='y', which='both', 
-                                         left=False, right=True, 
-                                         labelleft=False, labelright=True, 
-                                         colors=color, labelsize=8)
-                current_ax.set_ylabel('')  # 한글 라벨 제거
                 
                 # Y축 범위 고정
                 if field == "SOC":
-                    current_ax.set_ylim(0, 100)  # 0-100%
+                    current_ax.set_ylim(0, 100)
                 elif field == "유량":
-                    current_ax.set_ylim(0, 70)   # 0-70 g/s
+                    current_ax.set_ylim(0, 100)
                 elif field == "퓨얼링압력":
-                    current_ax.set_ylim(0, 750)  # 0-750 bar
+                    current_ax.set_ylim(0, 800)
                 
                 axes_list.append((current_ax, label_text, color))
                 plot_count += 1
@@ -1466,7 +1159,7 @@ def update_graph():
     
     # 기본 축 설정
     ax_graph.set_xlabel("시간 (초)", fontsize=12, fontweight='bold')
-    ax_graph.set_title(f"실시간 모니터링 (다중 Y축) - {'ON' if data_on[0] else 'OFF'}", 
+    ax_graph.set_title(f"실시간 모니터링 - {'ON' if data_on[0] else 'OFF'}", 
                       fontsize=14, fontweight='bold')
     
     # X축을 분:초 형태로 표시 (0:00, 0:30, 1:00...)
@@ -1474,48 +1167,25 @@ def update_graph():
     ax_graph.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax_graph.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_time(x)))
     
-    # 범례를 모든 축에서 수집해서 하나로 통합 (색상 강제 통일)
+    # 범례를 모든 축에서 수집해서 하나로 통합
     if plot_count > 0:
         all_lines = []
         all_labels = []
-        legend_colors = []
-        
         for ax_item, label, color in axes_list:
             lines = ax_item.get_lines()
             if lines:
-                # 각 라인의 색상을 강제로 설정된 색상으로 맞춤
+                # 각 축의 첫 번째 라인만 추가 (커서 라인 제외)
                 for line in lines:
-                    line.set_color(color)  # 색상 강제 통일
-                all_lines.extend(lines)
-                all_labels.append(label)
-                legend_colors.append(color)
+                    if line.get_color() != 'red':  # 커서 라인 제외
+                        all_lines.append(line)
+                        all_labels.append(label)
+                        break  # 각 축당 하나의 라인만
         
         if all_lines:
-            legend = ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.5, 1.15), 
-                                   loc='upper center', fontsize=10, ncol=2)
-            
-            # 🎨 범례 선과 텍스트 색상 강제 통일 (matplotlib 버전 호환)
-            try:
-                # 최신 버전 시도
-                legend_handles = legend.legend_handles
-            except AttributeError:
-                try:
-                    # 이전 버전 시도
-                    legend_handles = legend.legendHandles
-                except AttributeError:
-                    # 모든 버전에서 실패하면 get_lines() 사용
-                    legend_handles = legend.get_lines()
-            
-            for i, (handle, text) in enumerate(zip(legend_handles, legend.get_texts())):
-                if i < len(legend_colors):
-                    try:
-                        # 범례 선 색상 통일
-                        handle.set_color(legend_colors[i])
-                        # 범례 텍스트 색상은 검은색으로 유지 (가독성)
-                        text.set_color('black')
-                    except Exception:
-                        # 색상 설정 실패 시 무시하고 계속
-                        pass
+            # 범례를 버튼과 같은 높이에 배치
+            ax_graph.legend(all_lines, all_labels, bbox_to_anchor=(0.96, 1.12), 
+                           loc='upper right', fontsize=9, ncol=2, framealpha=0.9,
+                           columnspacing=0.5, handlelength=1.5)
     
     # 격자는 기본 축에만
     ax_graph.grid(True, linestyle=':', alpha=0.4, zorder=0)
@@ -1534,7 +1204,15 @@ def update_graph():
     else:
         ax_graph.set_xlim(0, 50)  # 초기 범위
     
-    # 그래프 업데이트 (데이터 주기에 맞춘 최적화)
+    # 레이아웃은 이미 subplots_adjust로 설정됨
+    
+    # LIVE 버튼 색상 업데이트 (ON 상태이고 데이터 수신 중일 때만 색상 표시)
+    if data_on[0] and len(data_rows) > 0:
+        btn_reset.color = 'lightblue'
+    else:
+        btn_reset.color = 'white'
+    btn_reset.ax.set_facecolor(btn_reset.color)
+    
     fig.canvas.draw_idle()
 
 def on_slider(val):
@@ -1557,39 +1235,29 @@ def on_click(event):
             is_graph_click = True
     
     if is_graph_click and event.xdata is not None:
-        try:
-            with lock:
-                if not data_rows:
-                    return
-                
-                # 첫 클릭시 커서 활성화
-                cursor_active[0] = True
-                
-                # 클릭한 x좌표에서 가장 가까운 데이터 포인트 찾기 (전체 데이터 사용)
-                if not data_rows:
-                    return
-                xs = [row[0] - data_rows[0][0] for row in data_rows]  # 전체 데이터 기준
-                
-                # 클릭 위치와 가장 가까운 인덱스 찾기
-                closest_idx = min(range(len(xs)), key=lambda i: abs(xs[i] - event.xdata))
-                global_idx = closest_idx
-                
-                cursor_idx[0] = global_idx
-                
-                # 슬라이더가 있으면 동기화 (실시간 업데이트는 중단하지 않음)
-                if slider is not None:
-                    try:
-                        slider.set_val(global_idx)
-                    except:
-                        pass  # 슬라이더 업데이트 실패 시 무시
-                
-                # 🔄 즉시 업데이트 (실시간 중에도 클릭 반응)
-                update_state_panel()
-                fig.canvas.draw_idle()
-                
-        except Exception as e:
-            print(f"⚠️ 클릭 이벤트 처리 중 오류: {e}")
-            pass  # 오류 발생해도 계속 진행
+        with lock:
+            if not data_rows:
+                return
+            
+            # 첫 클릭시 커서 활성화
+            cursor_active[0] = True
+            
+            # 클릭한 x좌표에서 가장 가까운 데이터 포인트 찾기 (전체 데이터 사용)
+            if not data_rows:
+                return
+            xs = [row[0] - data_rows[0][0] for row in data_rows]  # 전체 데이터 기준
+            
+            # 클릭 위치와 가장 가까운 인덱스 찾기
+            closest_idx = min(range(len(xs)), key=lambda i: abs(xs[i] - event.xdata))
+            global_idx = closest_idx
+            
+            cursor_idx[0] = global_idx
+            
+            # 슬라이더가 있으면 동기화 (실시간 업데이트는 중단하지 않음)
+            if slider is not None:
+                slider.set_val(global_idx)
+            
+            # 상태 패널만 업데이트 (그래프는 periodic_update에서 계속 처리)
 
 
 def update_all():
@@ -1613,32 +1281,32 @@ def update_all():
                 cursor_idx[0] = data_count - 1
                 slider.set_val(data_count-1)
         
-        # 상태 패널 업데이트
-        if cursor_active[0]:
-            # 커서 모드: 커서 위치의 데이터 표시
-            update_state_panel(cursor_idx[0])
-        else:
-            # 실시간 모드: 최신 데이터 표시
-            update_state_panel(None)
-    else:
-        update_state_panel()
+        # 상태 패널 업데이트 (ON 상태이거나 커서 활성화시에만)
+        if data_on[0] or cursor_active[0]:
+            if cursor_active[0]:
+                # 커서 모드: 커서 위치의 데이터 표시
+                update_state_panel(cursor_idx[0])
+            else:
+                # 실시간 모드: 최신 데이터 표시
+                update_state_panel(None)
 
 
 def periodic_update_callback():
-    """🚀 고성능 타이머 콜백 함수 (성능 진단 포함)"""
+    """고성능 타이머 콜백 함수 (성능 진단 포함)"""
     global slider
     
-    # 📊 성능 측정 시작
+    # OFF 상태이고 커서도 비활성화면 업데이트 안함
+    if not data_on[0] and not cursor_active[0]:
+        return
+    
+    # 성능 측정 시작
     callback_start_time = time.perf_counter()
     
     try:
-        # 🛡️ 기본 안전 체크
-        if not data_on[0]:
-            return  # OFF 상태면 업데이트 스킵
         with lock:
             data_count = len(data_rows)
         
-        # 🎯 슬라이더 동적 생성 (필요시에만)
+        # 슬라이더 동적 생성 (필요시에만)
         if slider is None and data_count > 1:
             # 하단 슬라이더 영역에 배치
             ax_slider = plt.axes([0.15, 0.02, 0.7, 0.03])
@@ -1647,62 +1315,53 @@ def periodic_update_callback():
             slider.on_changed(on_slider)
             print("🎛️ 슬라이더 생성 완료")
         
-        # 📈 성능 최적화된 업데이트 (조건부 실행)
-        if data_count > 0:
-            update_all()
+        # 📈 메인 업데이트 실행
+        update_all()
         
-        # 📊 성능 통계 (간소화)
+        # 성능 통계 (10초마다)
         callback_end_time = time.perf_counter()
         callback_duration = (callback_end_time - callback_start_time) * 1000  # ms
         
-        # 성능 경고 (심각한 지연만 알림)
-        if callback_duration > 500:  # 500ms 이상 심각한 지연만 경고
-            current_time = time.time()
-            # 10초마다 한번만 경고
-            if not hasattr(periodic_update_callback, 'last_warning') or (current_time - periodic_update_callback.last_warning) > 10:
-                print(f"🚨 심각한 GUI 지연: {callback_duration:.1f}ms")
-                periodic_update_callback.last_warning = current_time
+        if not hasattr(periodic_update_callback, 'last_perf_report'):
+            periodic_update_callback.last_perf_report = time.time()
+            periodic_update_callback.callback_times = []
+        
+        periodic_update_callback.callback_times.append(callback_duration)
+        
+        # 10초마다 성능 리포트
+        current_time = time.time()
+        if current_time - periodic_update_callback.last_perf_report >= 10.0:
+            avg_time = sum(periodic_update_callback.callback_times) / len(periodic_update_callback.callback_times)
+            max_time = max(periodic_update_callback.callback_times)
+            
+            print(f"GUI 성능: 평균 {avg_time:.1f}ms, 최대 {max_time:.1f}ms, 데이터 {data_count}개")
+            
+            # 성능 경고
+            if avg_time > 100:  # 100ms 이상이면 경고
+                print("GUI 응답 속도 저하 감지 - 데이터 정리 권장")
+            elif avg_time < 50:  # 50ms 이하면 양호
+                print("GUI 응답 속도 양호")
+            
+            # 리스트 초기화
+            periodic_update_callback.callback_times = []
+            periodic_update_callback.last_perf_report = current_time
             
     except Exception as e:
-        print(f"❌ periodic_update_callback 오류: {e}")
-        # 🛡️ 오류가 반복되지 않도록 안전장치
-        try:
-            if hasattr(periodic_update_callback, 'error_count'):
-                periodic_update_callback.error_count += 1
-            else:
-                periodic_update_callback.error_count = 1
-                
-            # 연속 오류 10회 이상이면 타이머 중단
-            if periodic_update_callback.error_count > 10:
-                print("🚨 연속 오류로 인한 타이머 중단")
-                if update_timer:
-                    update_timer.stop()
-                return
-        except:
-            pass  # 안전장치도 실패하면 조용히 넘어감
+        print(f"periodic_update_callback 오류: {e}")
+        import traceback
+        traceback.print_exc()
 
 def periodic_update():
-    """🚀 고성능 타이머 설정 (정밀도 향상)"""
+    """고성능 타이머 설정 (정밀도 향상)"""
     global update_timer
     # 초기 업데이트
     try:
         update_all()
         
-        # ⚡ 성능 최적화: 적응형 업데이트 주기
-        # 데이터 많을 때: 빠른 업데이트 (300ms)
-        # 데이터 적을 때: 느린 업데이트 (800ms)
-        with lock:
-            data_count = len(data_rows)
+        # 그래프 업데이트 주기: 1초(1000ms) 고정
+        interval = 1000  # 1초
         
-        # 🚀 실시간 반영을 위해 더 빠른 업데이트
-        if data_count > 0:
-            interval = 1000  # 1초 - 데이터 수신 주기와 동일
-            # print("� 실시간 업데이트 모드: 100ms")  # 로그 제거로 성능 향상
-        else:
-            interval = 2000  # 2초 - 대기 모드
-            # print("⏸️  대기 업데이트 모드: 300ms")
-        
-        # 🎯 정밀 타이머 설정 (중복 방지 강화)
+        # 정밀 타이머 설정 (중복 방지 강화)
         if update_timer is None:
             update_timer = fig.canvas.new_timer(interval=interval)
             update_timer.add_callback(periodic_update_callback)
@@ -1713,15 +1372,15 @@ def periodic_update():
             update_timer.start()
             print(f"🔄 타이머 재시작: {interval}ms")
         else:
-            print("✅ 타이머 이미 실행 중 (중복 실행 방지)")
+            print("타이머 이미 실행 중 (중복 실행 방지)")
     except Exception as e:
-        print(f"❌ periodic_update 오류: {e}")
+        print(f"periodic_update 오류: {e}")
         import traceback
         traceback.print_exc()
 
 # ON/OFF 버튼 콜백
 def on_on(event):
-    global data_rows, current_sequence_index, udp_thread, last_received_data, udp_receiving
+    global data_rows, current_sequence_index, udp_thread, last_received_data
     # 처음부터 다시 시작: 데이터 및 CSV 파일 초기화
     with lock:
         data_rows.clear()
@@ -1744,7 +1403,7 @@ def on_on(event):
     # data_rows 완전 초기화 (global 선언 없이)
     with lock:
         data_rows.clear()
-        print("🧹 모든 이전 데이터 완전 삭제")
+        print("모든 이전 데이터 완전 삭제")
     
     # 기존 virtual_data.txt 파일 완전 정리 (반복적으로)
     import os, time  # os 모듈 import를 여기로 이동
@@ -1763,12 +1422,11 @@ def on_on(event):
     
     # 최종 확인
     if not os.path.exists(virtual_data_file):
-        print("✅ virtual_data.txt 파일 완전히 정리 확인됨")
+        print("virtual_data.txt 파일 완전히 정리 확인됨")
     else:
-        print("⚠️ virtual_data.txt 파일 정리 실패 - 강제 무시 모드 활성화")
+        print("virtual_data.txt 파일 정리 실패 - 강제 무시 모드 활성화")
     
     data_on[0] = True
-    udp_receiving = True  # 🟢 수신 상태 활성화
     
     # 상태 순서 인덱스 초기화 (중요!)
     current_sequence_index[0] = 0
@@ -1808,7 +1466,7 @@ def on_on(event):
             signal_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             signal_sock.sendto(b"ON", (DISP_IP, CONTROL_PORT))
             signal_sock.close()
-            print(f"📶 disp.py({DISP_IP}:{CONTROL_PORT})에 ON 신호 전송")
+            print(f"disp.py({DISP_IP}:{CONTROL_PORT})에 ON 신호 전송")
         except Exception as udp_error:
             print(f"UDP 신호 전송 실패: {udp_error}")
             # Fallback: 파일 신호
@@ -1819,14 +1477,22 @@ def on_on(event):
         print("신호 파일 생성 오류:", e)
 
 # 현재 데이터를 CSV 파일로 저장 (가독성 좋은 형태)
-def save_current_data():
+def save_current_data(custom_filename=None):
     if not data_rows:
         print("저장할 데이터가 없습니다.")
         return
     
     import datetime
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"monitoring_data_{timestamp}.csv"
+    if custom_filename:
+        # 사용자 지정 파일명 사용
+        if not custom_filename.endswith('.csv'):
+            filename = f"{custom_filename}.csv"
+        else:
+            filename = custom_filename
+    else:
+        # 기본 타임스탬프 파일명
+        filename = f"monitoring_data_{timestamp}.csv"
     
     try:
         import csv
@@ -1920,13 +1586,12 @@ def write_clean_state_section(writer, state, state_data):
         writer.writerow(row)
 
 def on_off(event):
-    global data_rows, current_sequence_index, udp_receiving
+    global data_rows, current_sequence_index
     if not data_on[0]:  # 이미 OFF 상태면 무시
         print("이미 OFF 상태입니다.")
         return
         
     data_on[0] = False
-    udp_receiving = False  # ⚪ 수신 상태 비활성화
     current_state[0] = "대기중"
     
     # 상태 순서 인덱스 초기화 (중요!)
@@ -1955,7 +1620,26 @@ def on_off(event):
             root.destroy()
             
             if result:  # 예를 선택한 경우
-                save_current_data()
+                # 파일명 입력 받기
+                from tkinter import simpledialog
+                
+                # 기본 파일명 생성
+                import datetime
+                default_name = f"monitoring_data_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                
+                # 파일명 입력 대화상자
+                custom_name = simpledialog.askstring(
+                    "파일명 입력",
+                    "저장할 파일명을 입력하세요:\\n(확장자 .csv는 자동 추가됩니다)",
+                    initialvalue=default_name
+                )
+                
+                if custom_name:  # 파일명 입력했으면 저장
+                    # 파일명에서 경로 구분자 제거 (보안 및 오류 방지)
+                    custom_name = custom_name.replace('/', '_').replace('\\', '_').replace(':', '_')
+                    save_current_data(custom_name)
+                else:
+                    print("파일명을 입력하지 않아 저장을 취소했습니다.")
             else:
                 print("데이터 저장을 취소했습니다.")
                 
@@ -1965,7 +1649,18 @@ def on_off(event):
             print(f"수신된 데이터({len(data_rows)}개 레코드)를 CSV 파일로 저장하시겠습니까?")
             user_input = input("저장하려면 'y' 또는 'yes'를 입력하세요: ").lower().strip()
             if user_input in ['y', 'yes', 'Y', 'YES']:
-                save_current_data()
+                # 파일명 입력 받기
+                import datetime
+                default_name = f"monitoring_data_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                print(f"기본 파일명: {default_name}.csv")
+                custom_name = input("저장할 파일명을 입력하세요 (엔터: 기본값 사용): ").strip()
+                
+                if custom_name:
+                    # 파일명에서 경로 구분자 제거 (보안 및 오류 방지)
+                    custom_name = custom_name.replace('/', '_').replace('\\', '_').replace(':', '_')
+                    save_current_data(custom_name)
+                else:
+                    save_current_data(default_name)
             else:
                 print("데이터 저장을 취소했습니다.")
     
@@ -1995,7 +1690,7 @@ def on_off(event):
         control_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         control_socket.sendto(b"OFF", (DISP_IP, CONTROL_PORT))
         control_socket.close()
-        print(f"📶 disp.py({DISP_IP}:{CONTROL_PORT})에 OFF 신호 전송")
+        print(f"disp.py({DISP_IP}:{CONTROL_PORT})에 OFF 신호 전송")
     except Exception as e:
         print(f"UDP STOP 신호 전송 실패: {e}")
         # 폴백: 파일 기반 신호
@@ -2016,23 +1711,131 @@ def on_off(event):
 
 # 저장된 데이터 불러서 재생
 def replay_saved_data():
-    with open(DATA_FILE, newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        rows = list(reader)
-    if not rows:
-        print('저장된 데이터 없음')
+    """저장된 CSV 파일을 불러와서 그래프로 표시"""
+    from tkinter import filedialog
+    import tkinter as tk
+    
+    # 파일 선택 다이얼로그
+    root = tk.Tk()
+    root.withdraw()  # 메인 윈도우 숨기기
+    filename = filedialog.askopenfilename(
+        title="CSV 파일 선택",
+        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        initialdir="."
+    )
+    root.destroy()
+    
+    if not filename:
+        print("파일 선택 취소됨")
         return
-    plt.figure()
-    xs = [float(row[0]) - float(rows[0][0]) for row in rows]
-    for i, f in enumerate(fields_to_plot):
-        idx = field_indices.get(f)
-        ys = [float(row[idx]) if idx is not None and idx < len(row) and row[idx] else None for row in rows]
-        plt.plot(xs, ys, color=colors[i%len(colors)], label=f)
-    plt.xlabel('Time (s)')
-    plt.title('저장된 데이터 재생')
-    plt.legend()
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.show()
+    
+    try:
+        with open(filename, newline='', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+        
+        if not rows:
+            print('저장된 데이터 없음')
+            return
+        
+        # 상태별 데이터 파싱
+        loaded_data = []
+        current_section = None
+        header_fields = []
+        
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            
+            # 상태 섹션 시작 감지
+            if row[0].startswith('==='):
+                current_section = row[0].strip('= ')
+                continue
+            
+            # 헤더 행 감지 (시간(초)로 시작)
+            if row[0] == '시간(초)':
+                header_fields = row[1:]  # 시간 제외한 필드명들
+                continue
+            
+            # 메타데이터 행 건너뛰기
+            if any(x in row[0] for x in ['수소 충전소', '생성 시간', '총 데이터 수', '데이터 없음', '숫자형 데이터']):
+                continue
+            
+            # 실제 데이터 행 파싱
+            if header_fields and current_section:
+                try:
+                    time_val = float(row[0])
+                    data_dict = {'STATE': current_section.split()[0]}  # 상태명만 추출
+                    
+                    # 각 필드 값 추가
+                    for i, field in enumerate(header_fields):
+                        if i + 1 < len(row) and row[i + 1]:
+                            try:
+                                data_dict[field] = float(row[i + 1])
+                            except ValueError:
+                                data_dict[field] = row[i + 1]
+                    
+                    # data_rows 형식으로 변환: [timestamp, data_dict]
+                    loaded_data.append([time_val, data_dict])
+                except (ValueError, IndexError) as e:
+                    continue
+        
+        if not loaded_data:
+            print('유효한 데이터를 찾을 수 없습니다.')
+            return
+        
+        # 로드된 데이터의 필드 확인
+        sample_fields = set()
+        for row in loaded_data[:5]:  # 처음 5개 행에서 필드 확인
+            if len(row) > 1 and isinstance(row[1], dict):
+                sample_fields.update(row[1].keys())
+        print(f"로드된 데이터 필드: {sample_fields}")
+        
+        # CSV에서는 상대 시간(초)으로 저장되어 있으므로 절대 타임스탬프로 변환
+        import time as time_module
+        base_time = time_module.time()  # 현재 시간을 기준점으로
+        for row in loaded_data:
+            row[0] = base_time + row[0]  # 상대 시간을 절대 시간으로 변환
+        
+        print(f"첫 데이터: {loaded_data[0]}")
+        print(f"마지막 데이터: {loaded_data[-1]}")
+        
+        # 기존 데이터를 로드된 데이터로 교체
+        global data_rows, cursor_idx, cursor_active, slider
+        
+        with lock:
+            data_rows.clear()
+            data_rows.extend(loaded_data)
+        
+        # 커서를 처음으로 설정
+        cursor_idx[0] = 0
+        cursor_active[0] = True
+        
+        print(f"CSV 파일 로드 완료: {filename}")
+        print(f"총 {len(loaded_data)}개 레코드 로드됨")
+        print(f"첫 5개 데이터 샘플:")
+        for i, row in enumerate(loaded_data[:5]):
+            print(f"  [{i}] time={row[0]:.2f}, data={row[1]}")
+        
+        # 슬라이더 범위 업데이트
+        if slider is not None:
+            slider.valmax = max(1, len(loaded_data) - 1)
+            slider.ax.set_xlim(0, slider.valmax)
+            slider.set_val(0)
+        
+        # 전체 업데이트 (상태 패널, 현재 값, 그래프)
+        update_all()
+        
+        # 강제로 화면 새로고침
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        
+        print("CSV 로드 및 화면 업데이트 완료")
+        
+    except Exception as e:
+        import traceback
+        print(f"CSV 파일 로드 오류: {e}")
+        traceback.print_exc()
 
 
 # 화면 크기 변경 시 레이아웃 자동 조정 함수
@@ -2050,14 +1853,16 @@ def on_resize(event):
 # 화면 크기 변경 이벤트 연결
 fig.canvas.mpl_connect('resize_event', on_resize)
 
-# ON/OFF 버튼 생성 (상단 버튼 영역에 배치, 왼쪽으로 이동)
-ax_btn_on = plt.axes([0.25, 0.93, 0.08, 0.04])
-ax_btn_off = plt.axes([0.35, 0.93, 0.08, 0.04])
-ax_btn_reset = plt.axes([0.45, 0.93, 0.12, 0.04])  # 커서 리셋 버튼
+# ON/OFF 버튼 생성 (왼쪽으로 이동)
+ax_btn_on = plt.axes([0.30, 0.93, 0.07, 0.04])
+ax_btn_off = plt.axes([0.38, 0.93, 0.07, 0.04])
+ax_btn_reset = plt.axes([0.46, 0.93, 0.08, 0.04])  # 커서 리셋 버튼
+ax_btn_load = plt.axes([0.55, 0.93, 0.08, 0.04])   # 불러오기 버튼 (SAVE 위치로 이동)
 
 btn_on = Button(ax_btn_on, 'ON', color='lightgreen', hovercolor='green')
 btn_off = Button(ax_btn_off, 'OFF', color='lightcoral', hovercolor='red')
-btn_reset = Button(ax_btn_reset, 'LIVE', color='lightblue', hovercolor='blue')
+btn_reset = Button(ax_btn_reset, 'LIVE', color='white', hovercolor='blue')  # 기본은 색상 없음
+btn_load = Button(ax_btn_load, 'LOAD', color='lightgray', hovercolor='gray')
 
 def on_reset_cursor(event):
     """커서 비활성화하고 실시간 모드로 전환"""
@@ -2065,36 +1870,17 @@ def on_reset_cursor(event):
     if data_rows:
         cursor_idx[0] = len(data_rows) - 1
 
+def on_load_button(event):
+    """불러오기 버튼 클릭 시 CSV 파일 로드"""
+    replay_saved_data()
+
 btn_on.on_clicked(on_on)
 btn_off.on_clicked(on_off)
 btn_reset.on_clicked(on_reset_cursor)
+btn_load.on_clicked(on_load_button)
 
-# 키보드 이벤트 핸들러 (스크롤 기능)
-def on_key_press(event):
-    """키보드 이벤트 처리 - 상태 패널 스크롤"""
-    if hasattr(update_state_panel, 'scroll_offset'):
-        if event.key == 'up' or event.key == 'w':
-            # 위로 스크롤 (이전 항목들)
-            update_state_panel.scroll_offset = max(0, update_state_panel.scroll_offset - 1)
-            update_all()
-            print("📜 상태 패널: 위로 스크롤")
-        elif event.key == 'down' or event.key == 's':
-            # 아래로 스크롤 (다음 항목들)
-            if hasattr(update_state_panel, 'max_display'):
-                # 최대 스크롤 위치 계산
-                with lock:
-                    if data_rows and len(data_rows) > 0:
-                        latest_row = data_rows[-1]
-                        if len(latest_row) > 1 and isinstance(latest_row[1], dict):
-                            total_fields = len([k for k in latest_row[1].keys() if k != 'STATE'])
-                            max_offset = max(0, total_fields - update_state_panel.max_display)
-                            update_state_panel.scroll_offset = min(max_offset, update_state_panel.scroll_offset + 1)
-                            update_all()
-                            print("📜 상태 패널: 아래로 스크롤")
-
-# 마우스 및 키보드 이벤트 연결
+# 마우스 클릭 이벤트 연결
 fig.canvas.mpl_connect('button_press_event', on_click)
-fig.canvas.mpl_connect('key_press_event', on_key_press)
 
 
 # 타이머 시작 및 메인 루프
